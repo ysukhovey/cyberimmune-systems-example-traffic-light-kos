@@ -1,0 +1,8 @@
+/* Package with an "IPing" interface declaration. */
+
+package echo.Ping
+
+interface {
+    /* Ping method interface. */
+    Ping(in UInt32 value, out UInt32 result);
+}

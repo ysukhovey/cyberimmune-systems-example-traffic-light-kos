@@ -1,0 +1,8 @@
+/* Definition of the `ping` component. */
+
+component echo.Ping
+
+endpoints {
+    /* Declaration of a named implementation of the "Ping" interface. */
+    ping : echo.Ping
+}
