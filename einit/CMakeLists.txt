@@ -7,7 +7,7 @@ include (platform/image)
 project_header_default ("STANDARD_GNU_11:YES" "STRICT_WARNINGS:NO")
 
 # Define the ENTITIES variable with a list of entities.
-set (ENTITIES Client Server)
+set (ENTITIES ControlSystem LightsGPIO)
 
 # KasperskyOS image for target hardware platform.
 build_kos_hw_image (kos-image

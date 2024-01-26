@@ -1,5 +1,0 @@
-entity echo.Server
-
-components {
-    Server : echo.Ping
-}
