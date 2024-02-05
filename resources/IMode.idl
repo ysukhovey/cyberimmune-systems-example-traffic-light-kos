@@ -2,16 +2,48 @@
 
 package traffic_light.IMode
 
-const UInt32 Direction1Red          = 1;
-const UInt32 Direction1Yellow       = 2;
-const UInt32 Direction1Green        = 4;
-const UInt32 Direction1Blink        = 8;
+/*
+    Parts: [  D4  ] [  D3  ] [  D2  ] [  D1  ]
+           11111111 11111111 11111111 11111111
+    Part structure:
+    7 6 5  4  3 2 1 0
+    r y g al ar - - b
+*/
 
-const UInt32 Direction2Red          = 0x100;
-const UInt32 Direction2Yellow       = 0x200;
-const UInt32 Direction2Green        = 0x400;
-const UInt32 Direction2Blink        = 0x800;
+// Invalid combination
+const UInt32 WRONGCOMBO = 0xFFFFFFFF;
 
+// Direction 1
+const UInt32 R1  = 0x80;
+const UInt32 Y1  = 0x40;
+const UInt32 G1  = 0x20;
+const UInt32 AL1 = 0x10;
+const UInt32 AR1 = 0x08;
+const UInt32 B1  = 0x01;
+
+// Direction 2
+const UInt32 R2  = 0x8000;
+const UInt32 Y2  = 0x4000;
+const UInt32 G2  = 0x2000;
+const UInt32 AL2 = 0x1000;
+const UInt32 AR2 = 0x0800;
+const UInt32 B2  = 0x0100;
+
+// Direction 3
+const UInt32 R3  = 0x800000;
+const UInt32 Y3  = 0x400000;
+const UInt32 G3  = 0x200000;
+const UInt32 AL3 = 0x100000;
+const UInt32 AR3 = 0x080000;
+const UInt32 B3  = 0x010000;
+
+// Direction 4
+const UInt32 R4  = 0x80000000;
+const UInt32 Y4  = 0x40000000;
+const UInt32 G4  = 0x20000000;
+const UInt32 AL4 = 0x10000000;
+const UInt32 AR4 = 0x08000000;
+const UInt32 B4  = 0x01000000;
 
 interface {
     /* IMode interface method */

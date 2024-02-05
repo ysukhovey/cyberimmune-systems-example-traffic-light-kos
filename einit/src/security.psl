@@ -13,6 +13,7 @@ use EDL Einit
 use EDL kl.core.Core
 
 use EDL traffic_light.ControlSystem
+use EDL traffic_light.ModeChecker
 use EDL traffic_light.LightsGPIO
 
 /* Execution of entities allowed. */
@@ -20,32 +21,18 @@ execute {
     grant ()
 }
 
-/* Request messages allowed. */
-request src=traffic_light.ControlSystem {
-    grant ()
-}
-
-
 request src=traffic_light.ControlSystem dst=kl.core.Core {
     grant ()
 }
 
-
+/* Request Ligths GPIO to set new combination*/
 request src=traffic_light.ControlSystem 
     dst=traffic_light.LightsGPIO 
     endpoint=lightsGpio.mode 
     method=FMode {
+        assert(message.value != 0xffffffff)
         grant()
-}
-
-/*
-request src=traffic_light.ControlSystem 
-    dst=traffic_light.LightsGPIO 
-    endpoint=lightsGpio.mode 
-    method=FMode {
-        assert (message.value != 0x404)        
-}
-*/
+    }
 
 request src=Einit {
     grant ()
@@ -59,20 +46,10 @@ request src=traffic_light.LightsGPIO dst=kl.core.Core {
     grant ()
 }
 
-
 /* Response messages allowed. */
 response {
     grant ()
 }
-
-/*
-response src=traffic_light.LightsGPIO 
-    dst=traffic_light.ControlSystem 
-    endpoint=lightsGpio.mode 
-    method=FMode {
-        assert (message.result < 0x1000404)
-}
-*/
 
 error {
     grant ()

@@ -12,26 +12,46 @@
 
 #include <assert.h>
 
-#define MODES_NUM 9
+/* Valid lights combinations */
+static const rtl_uint32_t VALID_COMBINATIONS[] = {
+        traffic_light_IMode_R1,
+        traffic_light_IMode_R1 + traffic_light_IMode_AR1,
+        traffic_light_IMode_R1 + traffic_light_IMode_Y1,
+        traffic_light_IMode_R1 + traffic_light_IMode_Y1 + traffic_light_IMode_AR1,
+        traffic_light_IMode_G1,
+        traffic_light_IMode_G1 + traffic_light_IMode_AL1 + traffic_light_IMode_AR1,
+        traffic_light_IMode_G1 + traffic_light_IMode_AR1
+};
 
+static rtl_uint32_t check_combination(rtl_uint32_t combination) {
+    size_t length = sizeof(VALID_COMBINATIONS) / sizeof(VALID_COMBINATIONS[0]);;
+    for (size_t i = 0; i < length; i++) {
+        if (VALID_COMBINATIONS[i] == combination) {
+            return combination;
+        }
+    }
+    return traffic_light_IMode_WRONGCOMBO;
+}
 
 /* Control system entity entry point. */
 int main(int argc, const char *argv[])
 {
     NkKosTransport transport;
     struct traffic_light_IMode_proxy proxy;
-    int i;
-    static const nk_uint32_t tl_modes[MODES_NUM] = {
-        traffic_light_IMode_Direction1Red + traffic_light_IMode_Direction2Red,
-        traffic_light_IMode_Direction1Red + traffic_light_IMode_Direction1Yellow + traffic_light_IMode_Direction2Red,
-        traffic_light_IMode_Direction1Green + traffic_light_IMode_Direction2Red,
-        traffic_light_IMode_Direction1Yellow + traffic_light_IMode_Direction2Red,
-        traffic_light_IMode_Direction1Red + traffic_light_IMode_Direction2Yellow + traffic_light_IMode_Direction2Red,
-        traffic_light_IMode_Direction1Red + traffic_light_IMode_Direction2Green,
-        traffic_light_IMode_Direction1Red + traffic_light_IMode_Direction2Yellow,
-        traffic_light_IMode_Direction1Yellow + traffic_light_IMode_Direction1Blink + traffic_light_IMode_Direction2Yellow + traffic_light_IMode_Direction2Blink,
-        traffic_light_IMode_Direction1Green + traffic_light_IMode_Direction2Green // <-- try to forbid this via security policies
+
+    static const nk_uint32_t tl_modes[] = {
+            traffic_light_IMode_R1,
+            traffic_light_IMode_R1 + traffic_light_IMode_AR1,
+            traffic_light_IMode_R1 + traffic_light_IMode_Y1,
+            traffic_light_IMode_R1 + traffic_light_IMode_Y1 + traffic_light_IMode_AR1,
+            traffic_light_IMode_R1 + traffic_light_IMode_B1,
+            traffic_light_IMode_G1,
+            traffic_light_IMode_G1 + traffic_light_IMode_AL1 + traffic_light_IMode_AR1,
+            traffic_light_IMode_G1 + traffic_light_IMode_AR1,
+            traffic_light_IMode_B1
     };
+
+    size_t modesNum = sizeof(tl_modes) / sizeof(tl_modes[0]);;
 
     fprintf(stderr, "Hello I'm ControlSystem\n");
 
@@ -66,9 +86,9 @@ int main(int argc, const char *argv[])
 
     /* Test loop. */
     req.value = 0;
-    for (i = 0; i < MODES_NUM; i++)
+    for (int i = 0; i < modesNum; i++)
     {
-        req.value = tl_modes[i];
+        req.value = check_combination(tl_modes[i]);
         /**
          * Call Mode interface method.
          * Lights GPIO will be sent a request for calling Mode interface method
@@ -82,7 +102,7 @@ int main(int argc, const char *argv[])
              * Print result value from response
              * (result is the output argument of the Mode method).
              */
-            fprintf(stderr, "result = %0x\n", (int) res.result);
+            fprintf(stderr, "%u => %0u\n", (rtl_uint32_t) req.value, (rtl_uint32_t) res.result);
             /**
              * Include received result value into value argument
              * to resend to lights gpio in next iteration.
