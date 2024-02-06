@@ -20,12 +20,11 @@ typedef struct IModeImpl {
 
 /* Mode method implementation. */
 static nk_err_t FMode_impl(struct traffic_light_IMode *self,
-                          const struct traffic_light_IMode_FMode_req *req,
-                          const struct nk_arena *req_arena,
-                          traffic_light_IMode_FMode_res *res,
-                          struct nk_arena *res_arena)
-{
-    IModeImpl *impl = (IModeImpl *)self;
+                           const struct traffic_light_IMode_FMode_req *req,
+                           const struct nk_arena *req_arena,
+                           traffic_light_IMode_FMode_res *res,
+                           struct nk_arena *res_arena) {
+    IModeImpl *impl = (IModeImpl *) self;
     /**
      * Increment value in control system request by
      * one step and include into result argument that will be
@@ -39,16 +38,15 @@ static nk_err_t FMode_impl(struct traffic_light_IMode *self,
  * IMode object constructor.
  * step is the number by which the input value is increased.
  */
-static struct traffic_light_IMode *CreateIModeImpl(rtl_uint32_t step)
-{
+static struct traffic_light_IMode *CreateIModeImpl(rtl_uint32_t step) {
     /* Table of implementations of IMode interface methods. */
     static const struct traffic_light_IMode_ops ops = {
-        .FMode = FMode_impl
+            .FMode = FMode_impl
     };
 
     /* Interface implementing object. */
     static struct IModeImpl impl = {
-        .base = {&ops}
+            .base = {&ops}
     };
 
     impl.step = step;
@@ -56,9 +54,36 @@ static struct traffic_light_IMode *CreateIModeImpl(rtl_uint32_t step)
     return &impl.base;
 }
 
+/*
+    Presentation functions
+ */
+char* show_traffic_lights(u_int8_t n) {
+    char *binstr = (char*) malloc(9);
+    memset(binstr, 0, 9);
+    memset(binstr, 32, 8);
+
+    for (int i = 7; i >= 0; i--) {
+        int k = n >> i;
+        if (k & 1)
+            binstr[7 - i] = '1';
+        else
+            binstr[7 - i] = '0';
+    }
+
+    binstr[0] = (binstr[0] == '1' ? 'R' : '.');
+    binstr[1] = (binstr[1] == '1' ? 'Y' : '.');
+    binstr[2] = (binstr[2] == '1' ? 'G' : '.');
+    binstr[3] = (binstr[3] == '1' ? '<' : '.');
+    binstr[4] = (binstr[4] == '1' ? '>' : '.');
+    binstr[5] = (binstr[5] == '1' ? '?' : '.');
+    binstr[6] = (binstr[6] == '1' ? '?' : '.');
+    binstr[7] = (binstr[7] == '1' ? 'B' : '.');
+
+    return binstr;
+}
+
 /* Lights GPIO entry point. */
-int main(void)
-{
+int main(void) {
     NkKosTransport transport;
     ServiceId iid;
 
@@ -81,13 +106,13 @@ int main(void)
     traffic_light_LightsGPIO_entity_req req;
     char req_buffer[traffic_light_LightsGPIO_entity_req_arena_size];
     struct nk_arena req_arena = NK_ARENA_INITIALIZER(req_buffer,
-                                        req_buffer + sizeof(req_buffer));
+                                                     req_buffer + sizeof(req_buffer));
 
     /* Prepare response structures: constant part and arena. */
     traffic_light_LightsGPIO_entity_res res;
     char res_buffer[traffic_light_LightsGPIO_entity_res_arena_size];
     struct nk_arena res_arena = NK_ARENA_INITIALIZER(res_buffer,
-                                        res_buffer + sizeof(res_buffer));
+                                                     res_buffer + sizeof(res_buffer));
 
     /**
      * Initialize mode component dispatcher. 3 is the value of the step,
@@ -103,8 +128,7 @@ int main(void)
     fprintf(stderr, "[LightsGPIO   ] OK\n");
 
     /* Dispatch loop implementation. */
-    do
-    {
+    do {
         /* Flush request/response buffers. */
         nk_req_reset(&req);
         nk_arena_reset(&req_arena);
@@ -120,9 +144,15 @@ int main(void)
              * Handle received request by calling implementation Mode_impl
              * of the requested Mode interface method.
              */
-            fprintf(stderr, "[LightsGPIO   ] GOT %08x\n", (rtl_uint32_t) req.lightsGpio_mode.FMode.value);
+            fprintf(stderr, "[LightsGPIO   ] GOT %08x |%s|%s|%s|%s|\n", (rtl_uint32_t) req.lightsGpio_mode.FMode.value,
+                    show_traffic_lights(((char*)&req.lightsGpio_mode.FMode.value)[0]),
+                    show_traffic_lights(((char*)&req.lightsGpio_mode.FMode.value)[1]),
+                    show_traffic_lights(((char*)&req.lightsGpio_mode.FMode.value)[2]),
+                    show_traffic_lights(((char*)&req.lightsGpio_mode.FMode.value)[3])
+            );
+
             traffic_light_LightsGPIO_entity_dispatch(&entity, &req.base_, &req_arena,
-                                        &res.base_, &res_arena);
+                                                     &res.base_, &res_arena);
         }
 
         /* Send response. */
@@ -131,8 +161,7 @@ int main(void)
                                &res_arena) != NK_EOK) {
             fprintf(stderr, "[LightsGPIO   ] nk_transport_reply error\n");
         }
-    }
-    while (true);
+    } while (true);
 
     return EXIT_SUCCESS;
 }

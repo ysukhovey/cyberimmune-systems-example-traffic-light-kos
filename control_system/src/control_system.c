@@ -12,17 +12,6 @@
 
 #include <assert.h>
 
-/* Valid lights combinations */
-static const rtl_uint32_t VALID_COMBINATIONS[] = {
-        traffic_light_IMode_R1,
-        traffic_light_IMode_R1 + traffic_light_IMode_AR1,
-        traffic_light_IMode_R1 + traffic_light_IMode_Y1,
-        traffic_light_IMode_R1 + traffic_light_IMode_Y1 + traffic_light_IMode_AR1,
-        traffic_light_IMode_G1,
-        traffic_light_IMode_G1 + traffic_light_IMode_AL1 + traffic_light_IMode_AR1,
-        traffic_light_IMode_G1 + traffic_light_IMode_AR1
-};
-
 /* Control system entity entry point. */
 int main(int argc, const char *argv[])
 {
@@ -38,7 +27,10 @@ int main(int argc, const char *argv[])
             traffic_light_IMode_G1,
             traffic_light_IMode_G1 + traffic_light_IMode_AL1 + traffic_light_IMode_AR1,
             traffic_light_IMode_G1 + traffic_light_IMode_AR1,
-            traffic_light_IMode_B1
+            traffic_light_IMode_B1,
+            traffic_light_IMode_R1 + traffic_light_IMode_G2,
+            traffic_light_IMode_Y1 + traffic_light_IMode_B1 + traffic_light_IMode_Y2 + traffic_light_IMode_B2 + traffic_light_IMode_Y3 + traffic_light_IMode_B3 + traffic_light_IMode_Y4 + traffic_light_IMode_B4
+
     };
 
     size_t modesNum = sizeof(tl_modes) / sizeof(tl_modes[0]);
@@ -77,7 +69,7 @@ int main(int argc, const char *argv[])
     /* Test loop. */
     for (int i = 0; i < modesNum; i++) {
         req.value = tl_modes[i];
-        fprintf(stderr, "[ControlSystem] Request %04d START --------------------------------------\n", i);
+        fprintf(stderr, "[ControlSystem] Request %04d ------------------------------------ STARTED\n", i);
         fprintf(stderr, "[ControlSystem] ==> %08x\n", (rtl_uint32_t) req.value);
         /**
          * Call Mode interface method.
@@ -99,7 +91,7 @@ int main(int argc, const char *argv[])
         }
         else
             fprintf(stderr, "[ControlSystem] Failed to call traffic_light.Mode.Mode()\n");
-        fprintf(stderr, "[ControlSystem] Request %04d END ----------------------------------------\n", i);
+        fprintf(stderr, "[ControlSystem] Request %04d ----------------------------------- FINISHED\n", i);
     }
 
     return EXIT_SUCCESS;
