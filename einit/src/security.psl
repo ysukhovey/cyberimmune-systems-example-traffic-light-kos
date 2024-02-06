@@ -38,14 +38,12 @@ request src=traffic_light.ControlSystem
         grant()
 }
 
-/*
-request src=traffic_light.ControlSystem 
-    dst=traffic_light.LightsGPIO 
-    endpoint=lightsGpio.mode 
+request src=traffic_light.ControlSystem
+    dst=traffic_light.LightsGPIO
+    endpoint=lightsGpio.mode
     method=FMode {
-        assert (message.value != 0x404)        
+        assert(message.value < 0x808)
 }
-*/
 
 request src=Einit {
     grant ()
@@ -66,11 +64,11 @@ response {
 }
 
 /*
-response src=traffic_light.LightsGPIO 
+response src=traffic_light.LightsGPIO
     dst=traffic_light.ControlSystem 
     endpoint=lightsGpio.mode 
     method=FMode {
-        assert (message.result < 0x1000404)
+        assert (message.result < 0x1000808)
 }
 */
 
