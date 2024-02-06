@@ -30,7 +30,7 @@ static nk_err_t FMode_impl(struct traffic_light_IMode *self,
      * one step and include into result argument that will be
      * sent to the control system in the lights gpio response.
      */
-    res->result = req->value;// + impl->step;
+    res->result = req->value;
     return NK_EOK;
 }
 
@@ -60,7 +60,6 @@ static struct traffic_light_IMode *CreateIModeImpl(rtl_uint32_t step) {
 char* show_traffic_lights(u_int8_t n) {
     char *binstr = (char*) malloc(9);
     memset(binstr, 0, 9);
-    memset(binstr, 32, 8);
 
     for (int i = 7; i >= 0; i--) {
         int k = n >> i;
