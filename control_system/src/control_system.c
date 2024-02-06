@@ -23,16 +23,6 @@ static const rtl_uint32_t VALID_COMBINATIONS[] = {
         traffic_light_IMode_G1 + traffic_light_IMode_AR1
 };
 
-static rtl_uint32_t check_combination(rtl_uint32_t combination) {
-    size_t length = sizeof(VALID_COMBINATIONS) / sizeof(VALID_COMBINATIONS[0]);;
-    for (size_t i = 0; i < length; i++) {
-        if (VALID_COMBINATIONS[i] == combination) {
-            return combination;
-        }
-    }
-    return traffic_light_IMode_WRONGCOMBO;
-}
-
 /* Control system entity entry point. */
 int main(int argc, const char *argv[])
 {
@@ -51,15 +41,15 @@ int main(int argc, const char *argv[])
             traffic_light_IMode_B1
     };
 
-    size_t modesNum = sizeof(tl_modes) / sizeof(tl_modes[0]);;
+    size_t modesNum = sizeof(tl_modes) / sizeof(tl_modes[0]);
 
-    fprintf(stderr, "Hello I'm ControlSystem\n");
+    fprintf(stderr, "[ControlSystem] OK\n");
 
     /**
      * Get the LightsGPIO IPC handle of the connection named
      * "lights_gpio_connection".
      */
-    Handle handle = ServiceLocatorConnect("lights_gpio_connection");
+    Handle handle = ServiceLocatorConnect("mode_checker_connection");
     assert(handle != INVALID_HANDLE);
 
     /* Initialize IPC transport for interaction with the lights gpio entity. */
@@ -70,7 +60,7 @@ int main(int argc, const char *argv[])
      * Here mode is the name of the traffic_light.Mode component instance,
      * traffic_light.Mode.mode is the name of the Mode interface implementation.
      */
-    nk_iid_t riid = ServiceLocatorGetRiid(handle, "lightsGpio.mode");
+    nk_iid_t riid = ServiceLocatorGetRiid(handle, "modeChecker.mode");
     assert(riid != INVALID_RIID);
 
     /**
@@ -85,33 +75,31 @@ int main(int argc, const char *argv[])
     traffic_light_IMode_FMode_res res;
 
     /* Test loop. */
-    req.value = 0;
-    for (int i = 0; i < modesNum; i++)
-    {
-        req.value = check_combination(tl_modes[i]);
+    for (int i = 0; i < modesNum; i++) {
+        req.value = tl_modes[i];
+        fprintf(stderr, "[ControlSystem] Request %04d START --------------------------------------\n", i);
+        fprintf(stderr, "[ControlSystem] ==> %08x\n", (rtl_uint32_t) req.value);
         /**
          * Call Mode interface method.
          * Lights GPIO will be sent a request for calling Mode interface method
          * mode_comp.mode_impl with the value argument. Calling thread is locked
          * until a response is received from the lights gpio.
          */
-        if (traffic_light_IMode_FMode(&proxy.base, &req, NULL, &res, NULL) == rcOk)
-
-        {
+        if (traffic_light_IMode_FMode(&proxy.base, &req, NULL, &res, NULL) == rcOk) {
             /**
              * Print result value from response
              * (result is the output argument of the Mode method).
              */
-            fprintf(stderr, "%u => %0u\n", (rtl_uint32_t) req.value, (rtl_uint32_t) res.result);
+            fprintf(stderr, "[ControlSystem] <== %08x\n", (rtl_uint32_t) res.result);
             /**
              * Include received result value into value argument
              * to resend to lights gpio in next iteration.
              */
             req.value = res.result;
-
         }
         else
-            fprintf(stderr, "Failed to call traffic_light.Mode.Mode()\n");
+            fprintf(stderr, "[ControlSystem] Failed to call traffic_light.Mode.Mode()\n");
+        fprintf(stderr, "[ControlSystem] Request %04d END ----------------------------------------\n", i);
     }
 
     return EXIT_SUCCESS;

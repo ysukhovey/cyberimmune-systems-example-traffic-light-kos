@@ -100,7 +100,7 @@ int main(void)
     traffic_light_LightsGPIO_entity entity;
     traffic_light_LightsGPIO_entity_init(&entity, &component);
 
-    fprintf(stderr, "Hello I'm LightsGPIO\n");
+    fprintf(stderr, "[LightsGPIO   ] OK\n");
 
     /* Dispatch loop implementation. */
     do
@@ -114,12 +114,13 @@ int main(void)
         if (nk_transport_recv(&transport.base,
                               &req.base_,
                               &req_arena) != NK_EOK) {
-            fprintf(stderr, "nk_transport_recv error\n");
+            fprintf(stderr, "[LightsGPIO   ] nk_transport_recv error\n");
         } else {
             /**
              * Handle received request by calling implementation Mode_impl
              * of the requested Mode interface method.
              */
+            fprintf(stderr, "[LightsGPIO   ] GOT %08x\n", (rtl_uint32_t) req.lightsGpio_mode.FMode.value);
             traffic_light_LightsGPIO_entity_dispatch(&entity, &req.base_, &req_arena,
                                         &res.base_, &res_arena);
         }
@@ -128,7 +129,7 @@ int main(void)
         if (nk_transport_reply(&transport.base,
                                &res.base_,
                                &res_arena) != NK_EOK) {
-            fprintf(stderr, "nk_transport_reply error\n");
+            fprintf(stderr, "[LightsGPIO   ] nk_transport_reply error\n");
         }
     }
     while (true);

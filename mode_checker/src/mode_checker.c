@@ -2,11 +2,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <stdbool.h>
 
 /* Files required for transport initialization. */
 #include <coresrv/nk/transport-kos.h>
 #include <coresrv/sl/sl_api.h>
 
+/* EDL description of the LightsGPIO entity. */
+#include <traffic_light/ModeChecker.edl.h>
 /* Description of the lights gpio interface used by the `ControlSystem` entity. */
 #include <traffic_light/IMode.idl.h>
 
@@ -23,69 +26,149 @@ static rtl_uint32_t check_combination(rtl_uint32_t combination) {
     return traffic_light_IMode_WRONGCOMBO;
 }
 
+/* Type of interface implementing object. */
+typedef struct IModeImpl {
+    struct traffic_light_IMode base;     /* Base interface of object */
+    rtl_uint32_t step;                   /* Extra parameters */
+} IModeImpl;
+
+/* Mode method implementation. */
+static nk_err_t FMode_impl(struct traffic_light_IMode *self,
+                           const struct traffic_light_IMode_FMode_req *req,
+                           const struct nk_arena *req_arena,
+                           traffic_light_IMode_FMode_res *res,
+                           struct nk_arena *res_arena)
+{
+    IModeImpl *impl = (IModeImpl *)self;
+    /**
+     * Increment value in control system request by
+     * one step and include into result argument that will be
+     * sent to the control system in the lights gpio response.
+     */
+    res->result = req->value;// + impl->step;
+    return NK_EOK;
+}
+
+/**
+ * IMode object constructor.
+ * step is the number by which the input value is increased.
+ */
+static struct traffic_light_IMode *CreateIModeImpl(rtl_uint32_t step)
+{
+    /* Table of implementations of IMode interface methods. */
+    static const struct traffic_light_IMode_ops ops = {
+            .FMode = FMode_impl
+    };
+
+    /* Interface implementing object. */
+    static struct IModeImpl impl = {
+            .base = {&ops}
+    };
+
+    impl.step = step;
+
+    return &impl.base;
+}
+
 int main(int argc, const char *argv[]) {
-    NkKosTransport transport;
-    struct traffic_light_IMode_proxy proxy;
+    NkKosTransport mode_checker_transport;
+    ServiceId iid;
 
-    fprintf(stderr, "Hello I'm ModeChecker\n");
+    /* Get mode checker IPC handle of "mode_checker_connection". */
+    Handle handle_mode_checker = ServiceLocatorRegister("mode_checker_connection", NULL, 0, &iid);
+    assert(handle_mode_checker != INVALID_HANDLE);
 
-    /**
-     * Get the LightsGPIO IPC handle of the connection named
-     * "lights_gpio_connection".
-     */
-    Handle handle = ServiceLocatorConnect("lights_gpio_connection");
-    assert(handle != INVALID_HANDLE);
-
-    /* Initialize IPC transport for interaction with the lights gpio entity. */
-    NkKosTransport_Init(&transport, handle, NK_NULL, 0);
+    /* Initialize transport to control system. */
+    NkKosTransport_Init(&mode_checker_transport, handle_mode_checker, NK_NULL, 0);
 
     /**
-     * Get Runtime Interface ID (RIID) for interface traffic_light.Mode.mode.
-     * Here mode is the name of the traffic_light.Mode component instance,
-     * traffic_light.Mode.mode is the name of the Mode interface implementation.
+        * Prepare the structures of the request to the lights gpio entity: constant
+        * part and arena. Because none of the methods of the lights gpio entity has
+        * sequence type arguments, only constant parts of the
+        * request and response are used. Arenas are effectively unused. However,
+        * valid arenas of the request and response must be passed to
+        * lights gpio transport methods (nk_transport_recv, nk_transport_reply) and
+        * to the lights gpio method.
+        */
+    traffic_light_ModeChecker_entity_req req;
+    char req_buffer[traffic_light_ModeChecker_entity_req_arena_size];
+    struct nk_arena req_arena = NK_ARENA_INITIALIZER(req_buffer,
+                                                     req_buffer + sizeof(req_buffer));
+
+    /* Prepare response structures: constant part and arena. */
+    traffic_light_ModeChecker_entity_res res;
+    char res_buffer[traffic_light_ModeChecker_entity_res_arena_size];
+    struct nk_arena res_arena = NK_ARENA_INITIALIZER(res_buffer,
+                                                     res_buffer + sizeof(res_buffer));
+
+    /**
+     * Initialize mode component dispatcher. 3 is the value of the step,
+     * which is the number by which the input value is increased.
      */
-    nk_iid_t riid = ServiceLocatorGetRiid(handle, "lightsGpio.mode");
+    traffic_light_CMode_component component;
+    traffic_light_CMode_component_init(&component, CreateIModeImpl(0x1000000));
+
+    /* Initialize lights gpio entity dispatcher. */
+    traffic_light_ModeChecker_entity entity;
+    traffic_light_ModeChecker_entity_init(&entity, &component);
+
+    NkKosTransport transport_lights_gpio;
+    struct traffic_light_IMode_proxy proxy_lights_gpio;
+
+    Handle handle_lights_gpio = ServiceLocatorConnect("lights_gpio_connection");
+    assert(handle_lights_gpio != INVALID_HANDLE);
+
+    NkKosTransport_Init(&transport_lights_gpio, handle_lights_gpio, NK_NULL, 0);
+
+    nk_iid_t riid = ServiceLocatorGetRiid(handle_lights_gpio, "lightsGpio.mode");
     assert(riid != INVALID_RIID);
 
-    /**
-     * Initialize proxy object by specifying transport (&transport)
-     * and lights gpio interface identifier (riid). Each method of the
-     * proxy object will be implemented by sending a request to the lights gpio.
-     */
-    traffic_light_IMode_proxy_init(&proxy, &transport.base, riid);
+    traffic_light_IMode_proxy_init(&proxy_lights_gpio, &transport_lights_gpio.base, riid);
 
-    /* Request and response structures */
-    traffic_light_IMode_FMode_req req;
-    traffic_light_IMode_FMode_res res;
+    traffic_light_IMode_FMode_req req_lights_gpio;
+    traffic_light_IMode_FMode_res res_lights_gpio;
 
-    /* Test loop. */
-    req.value = 0;
 
-    /**
-     * Check request combination and pass it to the Lights GPIO component
-     * todo Implement logic
-     */
-    req.value = check_combination(traffic_light_IMode_WRONGCOMBO);
-    /**
-     * Call Mode interface method.
-     * Lights GPIO will be sent a request for calling Mode interface method
-     * mode_comp.mode_impl with the value argument. Calling thread is locked
-     * until a response is received from the lights gpio.
-     */
-    if (traffic_light_IMode_FMode(&proxy.base, &req, NULL, &res, NULL) == rcOk) {
-        /**
-         * Print result value from response
-         * (result is the output argument of the Mode method).
-         */
-        fprintf(stderr, "%u => %0u\n", (rtl_uint32_t) req.value, (rtl_uint32_t) res.result);
-        /**
-         * Include received result value into value argument
-         * to resend to lights gpio in next iteration.
-         */
-        req.value = res.result;
+    fprintf(stderr, "[ModeChecker  ] OK\n");
 
-    } else
-        fprintf(stderr, "Failed to call traffic_light.Mode.Mode()\n");
+    /* Dispatch loop implementation. */
+    do
+    {
+        /* Flush request/response buffers. */
+        nk_req_reset(&req);
+        nk_arena_reset(&req_arena);
+        nk_arena_reset(&res_arena);
+
+        /* Wait for request to lights gpio entity. */
+        if (nk_transport_recv(&mode_checker_transport.base,
+                              &req.base_,
+                              &req_arena) != NK_EOK) {
+            fprintf(stderr, "[ModeChecker  ] nk_transport_recv error\n");
+        } else {
+            fprintf(stderr, "[ModeChecker  ] GOT %08x\n", (rtl_uint32_t) req.modeChecker_mode.FMode.value);
+            req_lights_gpio.value = check_combination(req.modeChecker_mode.FMode.value);
+            fprintf(stderr, "[ModeChecker  ] ==> %08x\n", (rtl_uint32_t) req_lights_gpio.value);
+
+            if (traffic_light_IMode_FMode(&proxy_lights_gpio.base, &req_lights_gpio, NULL, &res_lights_gpio, NULL) == rcOk) {
+                fprintf(stderr, "[ModeChecker  ] <== %08x\n", (rtl_uint32_t) res_lights_gpio.result);
+                req_lights_gpio.value = res_lights_gpio.result;
+            } else
+                fprintf(stderr, "[ModeChecker  ] Failed to call traffic_light.Mode.Mode()\n");
+
+            traffic_light_ModeChecker_entity_dispatch(&entity, &req.base_, &req_arena,
+                                                      &res.base_, &res_arena);
+        }
+
+        /* Send response. */
+
+        if (nk_transport_reply(&mode_checker_transport.base,
+                               &res.base_,
+                               &res_arena) != NK_EOK) {
+            fprintf(stderr, "[ModeChecker  ] nk_transport_reply error\n");
+        }
+
+    }
+    while (true);
 
     return EXIT_SUCCESS;
 }
