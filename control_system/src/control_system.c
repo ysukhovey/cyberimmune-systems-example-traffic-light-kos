@@ -27,6 +27,7 @@ int main(int argc, const char *argv[])
         traffic_light_IMode_Direction1Red + traffic_light_IMode_Direction2Yellow,
         traffic_light_IMode_Direction1Yellow + traffic_light_IMode_Direction1Blink + traffic_light_IMode_Direction2Yellow + traffic_light_IMode_Direction2Blink,
         traffic_light_IMode_Direction1Green + traffic_light_IMode_Direction2Green, // 2 Greens
+        traffic_light_IMode_Direction2Green + traffic_light_IMode_Direction2Blink, //  Green2 + Blink2
         traffic_light_IMode_Direction1Green + traffic_light_IMode_Direction2Green + traffic_light_IMode_Direction1Red, // 2 Greens + D1Red
         traffic_light_IMode_Direction1Green + traffic_light_IMode_Direction2Green + traffic_light_IMode_Direction2Yellow // 2 Greens + D2Yellow
     };
