@@ -106,7 +106,7 @@ int main(int argc, const char *argv[]) {
      * which is the number by which the input value is increased.
      */
     traffic_light_CMode_component component;
-    traffic_light_CMode_component_init(&component, CreateIModeImpl(0x1000000));
+    traffic_light_CMode_component_init(&component, CreateIModeImpl(traffic_light_IMode_WRONGCOMBO));
 
     /* Initialize lights gpio entity dispatcher. */
     traffic_light_ModeChecker_entity entity;
@@ -152,11 +152,12 @@ int main(int argc, const char *argv[]) {
             if (traffic_light_IMode_FMode(&proxy_lights_gpio.base, &req_lights_gpio, NULL, &res_lights_gpio, NULL) == rcOk) {
                 fprintf(stderr, "[ModeChecker  ] <== %08x\n", (rtl_uint32_t) res_lights_gpio.result);
                 req_lights_gpio.value = res_lights_gpio.result;
-            } else
+                traffic_light_ModeChecker_entity_dispatch(&entity, &req.base_, &req_arena, &res.base_, &res_arena);
+            } else {
                 fprintf(stderr, "[ModeChecker  ] Failed to call traffic_light.Mode.Mode()\n");
-
-            traffic_light_ModeChecker_entity_dispatch(&entity, &req.base_, &req_arena,
-                                                      &res.base_, &res_arena);
+                traffic_light_ModeChecker_entity_dispatch(&entity, &req.base_, &req_arena, &res.base_, &res_arena);
+                res.modeChecker_mode.FMode.result = traffic_light_IMode_WRONGCOMBO;
+            }
         }
 
         /* Send response. */

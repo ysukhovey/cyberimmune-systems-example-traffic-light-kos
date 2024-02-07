@@ -58,11 +58,6 @@ response {
     grant ()
 }
 
-response src=traffic_light.ModeChecker dst=traffic_light.ControlSystem
-    endpoint=modeChecker.mode method=FMode{
-    assert(message.result != 0xffffffff)
-}
-
 error {
     grant ()
 }
