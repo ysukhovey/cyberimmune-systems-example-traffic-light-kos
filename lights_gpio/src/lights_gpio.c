@@ -1,6 +1,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <stdbool.h>
 
 /* Files required for transport initialization. */
@@ -57,10 +58,8 @@ static struct traffic_light_IMode *CreateIModeImpl(rtl_uint32_t step) {
 /*
     Presentation functions
  */
-char* show_traffic_lights(u_int8_t n) {
-    char *binstr = (char*) malloc(9);
+void format_traffic_lights(u_int8_t n, char *binstr) {
     memset(binstr, 0, 9);
-
     for (int i = 7; i >= 0; i--) {
         int k = n >> i;
         if (k & 1)
@@ -78,7 +77,6 @@ char* show_traffic_lights(u_int8_t n) {
     binstr[6] = (binstr[6] == '1' ? '?' : '.');
     binstr[7] = (binstr[7] == '1' ? 'B' : '.');
 
-    return binstr;
 }
 
 /* Lights GPIO entry point. */
@@ -126,6 +124,8 @@ int main(void) {
 
     fprintf(stderr, "[LightsGPIO   ] OK\n");
 
+    char bs1[9], bs2[9], bs3[9], bs4[9];
+
     /* Dispatch loop implementation. */
     do {
         /* Flush request/response buffers. */
@@ -143,11 +143,13 @@ int main(void) {
              * Handle received request by calling implementation Mode_impl
              * of the requested Mode interface method.
              */
+            format_traffic_lights(((char*)&req.lightsGpio_mode.FMode.value)[0], &bs1);
+            format_traffic_lights(((char*)&req.lightsGpio_mode.FMode.value)[1], &bs2);
+            format_traffic_lights(((char*)&req.lightsGpio_mode.FMode.value)[2], &bs3);
+            format_traffic_lights(((char*)&req.lightsGpio_mode.FMode.value)[3], &bs4);
+
             fprintf(stderr, "[LightsGPIO   ] GOT %08x |%s|%s|%s|%s|\n", (rtl_uint32_t) req.lightsGpio_mode.FMode.value,
-                    show_traffic_lights(((char*)&req.lightsGpio_mode.FMode.value)[0]),
-                    show_traffic_lights(((char*)&req.lightsGpio_mode.FMode.value)[1]),
-                    show_traffic_lights(((char*)&req.lightsGpio_mode.FMode.value)[2]),
-                    show_traffic_lights(((char*)&req.lightsGpio_mode.FMode.value)[3])
+                    bs1, bs2, bs3, bs4
             );
 
             traffic_light_LightsGPIO_entity_dispatch(&entity, &req.base_, &req_arena,
