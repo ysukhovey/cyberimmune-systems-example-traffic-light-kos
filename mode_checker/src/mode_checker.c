@@ -147,6 +147,7 @@ int main(int argc, const char *argv[]) {
         } else {
             fprintf(stderr, "[ModeChecker  ] GOT %08x\n", (rtl_uint32_t) req.modeChecker_mode.FMode.value);
             req_lights_gpio.value = check_combination(req.modeChecker_mode.FMode.value);
+            fprintf(stderr, "[ModeChecker  ] CHK %s\n", req_lights_gpio.value == req.modeChecker_mode.FMode.value ? "OK" : "FAIL");
             fprintf(stderr, "[ModeChecker  ] ==> %08x\n", (rtl_uint32_t) req_lights_gpio.value);
 
             if (traffic_light_IMode_FMode(&proxy_lights_gpio.base, &req_lights_gpio, NULL, &res_lights_gpio, NULL) == rcOk) {
