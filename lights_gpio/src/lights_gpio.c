@@ -25,12 +25,6 @@ static nk_err_t FMode_impl(struct traffic_light_IMode *self,
                            const struct nk_arena *req_arena,
                            traffic_light_IMode_FMode_res *res,
                            struct nk_arena *res_arena) {
-    IModeImpl *impl = (IModeImpl *) self;
-    /**
-     * Increment value in control system request by
-     * one step and include into result argument that will be
-     * sent to the control system in the lights gpio response.
-     */
     res->result = req->value;
     return NK_EOK;
 }
@@ -58,7 +52,7 @@ static struct traffic_light_IMode *CreateIModeImpl(rtl_uint32_t step) {
 /*
     Presentation functions
  */
-void format_traffic_lights(u_int8_t n, char *binstr) {
+static void format_traffic_lights(u_int8_t n, char *binstr) {
     memset(binstr, 0, 9);
     for (int i = 7; i >= 0; i--) {
         int k = n >> i;
@@ -143,10 +137,10 @@ int main(void) {
              * Handle received request by calling implementation Mode_impl
              * of the requested Mode interface method.
              */
-            format_traffic_lights(((char*)&req.lightsGpio_mode.FMode.value)[0], &bs1);
-            format_traffic_lights(((char*)&req.lightsGpio_mode.FMode.value)[1], &bs2);
-            format_traffic_lights(((char*)&req.lightsGpio_mode.FMode.value)[2], &bs3);
-            format_traffic_lights(((char*)&req.lightsGpio_mode.FMode.value)[3], &bs4);
+            format_traffic_lights(((u_int8_t*)&req.lightsGpio_mode.FMode.value)[0], (char *)&bs1);
+            format_traffic_lights(((u_int8_t*)&req.lightsGpio_mode.FMode.value)[1], (char *)&bs2);
+            format_traffic_lights(((u_int8_t*)&req.lightsGpio_mode.FMode.value)[2], (char *)&bs3);
+            format_traffic_lights(((u_int8_t*)&req.lightsGpio_mode.FMode.value)[3], (char *)&bs4);
 
             fprintf(stderr, "[LightsGPIO   ] GOT %08x |%s|%s|%s|%s|\n", (rtl_uint32_t) req.lightsGpio_mode.FMode.value,
                     bs1, bs2, bs3, bs4

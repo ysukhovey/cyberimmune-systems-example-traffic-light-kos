@@ -39,12 +39,6 @@ static nk_err_t FMode_impl(struct traffic_light_IMode *self,
                            traffic_light_IMode_FMode_res *res,
                            struct nk_arena *res_arena)
 {
-    IModeImpl *impl = (IModeImpl *)self;
-    /**
-     * Increment value in control system request by
-     * one step and include into result argument that will be
-     * sent to the control system in the lights gpio response.
-     */
     res->result = req->value;
     return NK_EOK;
 }
