@@ -141,17 +141,23 @@ int main(int argc, const char *argv[]) {
         } else {
             fprintf(stderr, "[ModeChecker  ] GOT %08x\n", (rtl_uint32_t) req.modeChecker_mode.FMode.value);
             req_lights_gpio.value = check_combination(req.modeChecker_mode.FMode.value);
-            fprintf(stderr, "[ModeChecker  ] CHK %s\n", req_lights_gpio.value == req.modeChecker_mode.FMode.value ? "OK" : "FAIL");
-            fprintf(stderr, "[ModeChecker  ] ==> %08x\n", (rtl_uint32_t) req_lights_gpio.value);
-
-            if (traffic_light_IMode_FMode(&proxy_lights_gpio.base, &req_lights_gpio, NULL, &res_lights_gpio, NULL) == rcOk) {
-                fprintf(stderr, "[ModeChecker  ] <== %08x\n", (rtl_uint32_t) res_lights_gpio.result);
-                req_lights_gpio.value = res_lights_gpio.result;
-                traffic_light_ModeChecker_entity_dispatch(&entity, &req.base_, &req_arena, &res.base_, &res_arena);
-            } else {
-                fprintf(stderr, "[ModeChecker  ] Failed to call traffic_light.Mode.Mode()\n");
+            if (traffic_light_IMode_WRONGCOMBO == req_lights_gpio.value) {
                 traffic_light_ModeChecker_entity_dispatch(&entity, &req.base_, &req_arena, &res.base_, &res_arena);
                 res.modeChecker_mode.FMode.result = traffic_light_IMode_WRONGCOMBO;
+                fprintf(stderr, "[ModeChecker  ] CHK FAIL\n");
+            }  else {
+                fprintf(stderr, "[ModeChecker  ] CHK OK\n");
+                fprintf(stderr, "[ModeChecker  ] ==> %08x\n", (rtl_uint32_t) req_lights_gpio.value);
+                if (traffic_light_IMode_FMode(&proxy_lights_gpio.base, &req_lights_gpio, NULL, &res_lights_gpio,
+                                              NULL) == rcOk) {
+                    fprintf(stderr, "[ModeChecker  ] <== %08x\n", (rtl_uint32_t) res_lights_gpio.result);
+                    req_lights_gpio.value = res_lights_gpio.result;
+                    traffic_light_ModeChecker_entity_dispatch(&entity, &req.base_, &req_arena, &res.base_, &res_arena);
+                } else {
+                    fprintf(stderr, "[ModeChecker  ] Failed to call traffic_light.Mode.Mode()\n");
+                    traffic_light_ModeChecker_entity_dispatch(&entity, &req.base_, &req_arena, &res.base_, &res_arena);
+                    res.modeChecker_mode.FMode.result = traffic_light_IMode_WRONGCOMBO;
+                }
             }
         }
 
