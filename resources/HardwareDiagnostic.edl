@@ -1,4 +1,4 @@
-entity traffic_light.ControlSystem
+entity traffic_light.HardwareDiagnostic
 
 components {
     hwDiag : traffic_light.CDiagMessage

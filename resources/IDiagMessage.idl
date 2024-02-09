@@ -1,0 +1,10 @@
+package traffic_light.IDiagMessage
+
+struct Message {
+    UInt32 code;
+    string<128> message;
+}
+
+interface {
+    FDiagMessage(in Message inbound, out Message outbound);
+}

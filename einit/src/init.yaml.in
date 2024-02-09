@@ -14,7 +14,17 @@ entities:
     id: lights_gpio_connection
 @INIT_ModeChecker_ENTITY_CONNECTIONS@
 
+# HWDiag entity can call ControlSystem
+- name: traffic_light.HardwareDiagnostic
+  connections:
+    - target: traffic_light.ControlSystem
+      id: diag_cs_connection
+@INIT_HardwareDiagnostic_ENTITY_CONNECTIONS@
+
 # The `LightsGPIO` entity can only respond to requests.
 - name: traffic_light.LightsGPIO
+  connections:
+    - target: traffic_light.HardwareDiagnostic
+      id: gpio_diag_connection
 @INIT_LightsGPIO_ENTITY_CONNECTIONS@
 

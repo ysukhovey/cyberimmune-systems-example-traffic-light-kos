@@ -7,7 +7,7 @@ include (platform/image)
 project_header_default ("STANDARD_GNU_11:YES" "STRICT_WARNINGS:NO")
 
 # Define the ENTITIES variable with a list of entities.
-set (ENTITIES ControlSystem ModeChecker LightsGPIO)
+set (ENTITIES ControlSystem ModeChecker HardwareDiagnostic LightsGPIO)
 
 # KasperskyOS image for target hardware platform.
 build_kos_hw_image (kos-image
@@ -21,4 +21,4 @@ build_kos_qemu_image (kos-qemu-image
         EINIT_ENTITY EinitQemu
         CONNECTIONS_CFG "src/init.yaml.in"
         SECURITY_PSL "src/security.psl"
-        ${ENTITIES})
+        ${ENTITIES} ${CMAKE_SOURCE_DIR}/resources/romfs/etc/hosts)

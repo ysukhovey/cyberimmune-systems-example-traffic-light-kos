@@ -10,6 +10,7 @@
 
 /* EDL description of the LightsGPIO entity. */
 #include <traffic_light/LightsGPIO.edl.h>
+#include <traffic_light/IDiagMessage.idl.h>
 
 #include <assert.h>
 
@@ -47,6 +48,46 @@ static struct traffic_light_IMode *CreateIModeImpl(rtl_uint32_t step) {
     impl.step = step;
 
     return &impl.base;
+}
+
+
+
+static void send_error_message(nk_uint32_t code, char *message) {
+    NkKosTransport transport;
+    struct traffic_light_IDiagMessage_proxy proxy;
+    Handle handle = ServiceLocatorConnect("gpio_diag_connection");
+    assert(handle != INVALID_HANDLE);
+    NkKosTransport_Init(&transport, handle, NK_NULL, 0);
+    nk_iid_t riid = ServiceLocatorGetRiid(handle, "hwDiag.message");
+    assert(riid != INVALID_RIID);
+    traffic_light_IDiagMessage_proxy_init(&proxy, &transport.base, riid);
+
+    traffic_light_IDiagMessage_FDiagMessage_req req;
+    traffic_light_IDiagMessage_FDiagMessage_res res;
+
+    char *staticMsg = "Message to demonstrate error description sending";
+
+    struct nk_arena reqArena = NK_ARENA_INITIALIZER(136, 272);
+    nk_ptr_t *msg = nk_arena_alloc(nk_char_t,
+                                   &reqArena,
+                                   staticMsg,
+                                   1);
+
+    if (msg == RTL_NULL) {
+        fprintf(stderr, "[LightsGPIO   ] Arena nk_ptr_t allocation failed\n");
+        return;
+    }
+
+
+
+    req.inbound.code = 8;
+    //req.inbound.message =
+
+    if (traffic_light_IDiagMessage_FDiagMessage(&proxy.base, &req, NULL, &res, NULL) == rcOk) {
+        fprintf(stderr, "[LightsGPIO   ] Error message sent to HardwareDiagnostic\n");
+    }
+    else
+        fprintf(stderr, "[LIghtsGPIO   ] Failed to call traffic_light.Mode.Mode()\n");
 }
 
 /*

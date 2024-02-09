@@ -14,15 +14,16 @@ use EDL kl.core.Core
 
 use EDL traffic_light.ControlSystem
 use EDL traffic_light.ModeChecker
+use EDL traffic_light.HardwareDiagnostic
 use EDL traffic_light.LightsGPIO
 
 /* Execution of entities allowed. */
 execute {
-    grant ()
+    grant()
 }
 
 request src=traffic_light.ControlSystem dst=kl.core.Core {
-    grant ()
+    grant()
 }
 
 request src=traffic_light.ControlSystem dst=traffic_light.ModeChecker endpoint=modeChecker.mode method=FMode {
@@ -38,31 +39,35 @@ request src=traffic_light.ModeChecker
     }
 
 request src=Einit {
-    grant ()
+    grant()
 }
 
 request src=kl.core.Core {
-    grant ()
+    grant()
 }
 
 request src=traffic_light.ModeChecker dst=kl.core.Core {
-    grant ()
+    grant()
 }
 
 request src=traffic_light.LightsGPIO dst=kl.core.Core {
-    grant ()
+    grant()
+}
+
+request src=traffic_light.HardwareDiagnostic dst=kl.core.Core {
+    grant()
 }
 
 /* Response messages allowed. */
 response {
-    grant ()
+    grant()
 }
 
 error {
-    grant ()
+    grant()
 }
 
 /* Calls to the security interface are ignored. */
 security {
-    grant ()
+    grant()
 }
