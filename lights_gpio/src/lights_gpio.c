@@ -67,7 +67,12 @@ static void send_error_message(nk_uint32_t code, char *message) {
 
     char *staticMsg = "Message to demonstrate error description sending";
 
-    struct nk_arena reqArena = NK_ARENA_INITIALIZER(136, 272);
+    const size_t bufSize = 128;
+
+    char reqBuffer[bufSize];
+
+    struct nk_arena reqArena = NK_ARENA_INITIALIZER(reqBuffer, reqBuffer + sizeof(reqBuffer));
+    //todo add folding here
     nk_ptr_t *msg = nk_arena_alloc(nk_char_t,
                                    &reqArena,
                                    staticMsg,

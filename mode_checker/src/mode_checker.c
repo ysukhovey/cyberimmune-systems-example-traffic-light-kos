@@ -16,6 +16,10 @@
 #include <assert.h>
 #include "mode_list.h"
 
+#define ANSI_COLOR_RED   "\x1b[91m"
+#define ANSI_COLOR_GREEN "\x1b[92m"
+#define ANSI_COLOR_RESET "\x1b[0m"
+
 static rtl_uint32_t check_combination(rtl_uint32_t combination) {
     size_t length = sizeof(TRAFFIC_LIGHT_MODES) / sizeof(TRAFFIC_LIGHT_MODES[0]);;
     for (size_t i = 0; i < length; i++) {
@@ -144,9 +148,9 @@ int main(int argc, const char *argv[]) {
             if (traffic_light_IMode_WRONGCOMBO == req_lights_gpio.value) {
                 traffic_light_ModeChecker_entity_dispatch(&entity, &req.base_, &req_arena, &res.base_, &res_arena);
                 res.modeChecker_mode.FMode.result = traffic_light_IMode_WRONGCOMBO;
-                fprintf(stderr, "[ModeChecker  ] CHK FAIL\n");
+                fprintf(stderr, "[ModeChecker  ] CHK %sFAIL%s\n", ANSI_COLOR_RED, ANSI_COLOR_RESET);
             }  else {
-                fprintf(stderr, "[ModeChecker  ] CHK OK\n");
+                fprintf(stderr, "[ModeChecker  ] CHK %sOK%s\n", ANSI_COLOR_GREEN, ANSI_COLOR_RESET);
                 fprintf(stderr, "[ModeChecker  ] ==> %08x\n", (rtl_uint32_t) req_lights_gpio.value);
                 if (traffic_light_IMode_FMode(&proxy_lights_gpio.base, &req_lights_gpio, NULL, &res_lights_gpio,
                                               NULL) == rcOk) {
