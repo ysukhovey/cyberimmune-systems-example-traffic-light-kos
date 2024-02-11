@@ -16,6 +16,10 @@
 
 #include <assert.h>
 
+#define ANSI_COLOR_RED   "\x1b[91m"
+#define ANSI_COLOR_GREEN "\x1b[92m"
+#define ANSI_COLOR_RESET "\x1b[0m"
+
 #define SEND_MESSAGE_COUNT 1
 
 // --------------------------------------
@@ -36,8 +40,7 @@ typedef struct {
             .resArena = resArenaIn,                 \
         }
 
-static void send_error_message(TransportDescriptor *desc, unsigned messageCounter)
-{
+static void send_error_message(TransportDescriptor *desc) {
     int logMessageLength = 0;
     char logMessage[traffic_light_IDiagMessage_Write_req_message_elem_size];
 
@@ -45,29 +48,27 @@ static void send_error_message(TransportDescriptor *desc, unsigned messageCounte
 
     nk_ptr_t *message = nk_arena_alloc(nk_ptr_t, desc->reqArena, &(desc->req->message[0]), SEND_MESSAGE_COUNT);
     if (message == RTL_NULL) {
-        fprintf(stderr, "[LightsGPIO  ] Error: can`t allocate memory in arena!\n");
+        fprintf(stderr, "[LightsGPIO   ] %sError: can`t allocate memory in arena!%s\n", ANSI_COLOR_RED, ANSI_COLOR_RESET);
         return;
     }
 
-    logMessageLength = rtl_snprintf(logMessage, traffic_light_IDiagMessage_Write_req_message_elem_size, "Log message %u", messageCounter);
+    // todo LOG MESSAGE IS HERE --------------------------------------------------------------------------------+
+    logMessageLength = rtl_snprintf(logMessage, traffic_light_IDiagMessage_Write_req_message_elem_size, "Log message");
     if (logMessageLength < 0) {
-        fprintf(stderr, "[LightsGPIO  ] Error: length of message is negative number!\n");
+        fprintf(stderr, "[LightsGPIO   ] %sError: length of message is negative number!%s\n", ANSI_COLOR_RED, ANSI_COLOR_RESET);
         return;
     }
 
     nk_char_t *str = nk_arena_alloc(nk_char_t, desc->reqArena, &message[0], (nk_size_t) (logMessageLength + 1));
     if (str == RTL_NULL) {
-        fprintf(stderr, "[LightsGPIO] Error: can`t allocate memory in arena!\n");
+        fprintf(stderr, "[LightsGPIO] %sError: can`t allocate memory in arena!%s\n", ANSI_COLOR_RED, ANSI_COLOR_RESET);
         return;
     }
 
     rtl_strncpy(str, logMessage, (rtl_size_t) (logMessageLength + 1));
 
-    if (traffic_light_IDiagMessage_Write(&desc->proxy->base, desc->req, desc->reqArena, desc->res, desc->resArena) == NK_EOK) {
-        messageCounter++;
-    }
-    else {
-        fprintf(stderr, "[LightsGPIO  ] Error: can`t send message to Logger entity!\n");
+    if (traffic_light_IDiagMessage_Write(&desc->proxy->base, desc->req, desc->reqArena, desc->res, desc->resArena) != NK_EOK) {
+        fprintf(stderr, "[LightsGPIO   ] %sError: can`t send message to Logger entity!%s\n", ANSI_COLOR_RED, ANSI_COLOR_RESET);
     }
 
     fprintf(stderr, "[LightsGPIO] write in log : %s\n", logMessage);
@@ -110,10 +111,6 @@ static struct traffic_light_IMode *CreateIModeImpl(rtl_uint32_t step) {
 
     return &impl.base;
 }
-
-
-
-
 
 /*
     Presentation functions
@@ -215,6 +212,43 @@ int main(void) {
             traffic_light_LightsGPIO_entity_dispatch(&entity, &req.base_, &req_arena,
                                                      &res.base_, &res_arena);
         }
+
+        // todo Add message sending to the Hardware Diagnostic
+
+/*
+        NkKosTransport hd_transport;
+        struct Write_proxy hd_proxy;
+        unsigned messageCounter = 0;
+        setvbuf(stderr, NULL, _IOLBF, 0);
+        Handle hd_handle = ServiceLocatorConnect("gpio_diag_connection");
+        if (handle == INVALID_HANDLE) {
+            fprintf(stderr, "[LughtsGPIO  ] %sError: can`t establish static IPC connection!%s\n", ANSI_COLOR_RED, ANSI_COLOR_RESET);
+            return EXIT_FAILURE;
+        }
+        NkKosTransport_Init(&hd_transport, hd_handle, NK_NULL, 0);
+        nk_iid_t hd_riid = ServiceLocatorGetRiid(hd_handle, "secure_logger.Logger.write");
+        if (hd_riid == INVALID_RIID) {
+            fprintf(stderr, "[LightsGPIO   ] %sError: can`t get runtime implementation ID (RIID) of "
+                    "interface secure_logger.Logger.write!%s\n", ANSI_COLOR_RED, ANSI_COLOR_RESET);
+            return EXIT_FAILURE;
+        }
+
+        Write_proxy_init(&hd_proxy, &hd_transport.base, hd_riid);
+
+        */
+/* Structures of request and response. *//*
+
+        traffic_light_IDiagMessage_Write_req hd_req;
+        traffic_light_IDiagMessage_Write_res hd_res;
+
+        char reqBuffer[traffic_light_IDiagMessage_Write_req_arena_size];
+        struct nk_arena hd_reqArena = NK_ARENA_INITIALIZER(reqBuffer, reqBuffer + sizeof(reqBuffer));
+
+        TransportDescriptor desc = DESCR_INIT(&hd_proxy, &hd_req, &hd_res, &hd_reqArena, RTL_NULL);
+
+        send_error_message(&desc, messageCounter);
+*/
+        // todo END send_error_message call
 
         /* Send response. */
         if (nk_transport_reply(&transport.base,
