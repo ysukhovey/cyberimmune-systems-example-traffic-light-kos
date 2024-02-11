@@ -3,6 +3,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+#include <rtl/string.h>
+#include <rtl/stdio.h>
 
 /* Files required for transport initialization. */
 #include <coresrv/nk/transport-kos.h>
@@ -13,6 +15,65 @@
 #include <traffic_light/IDiagMessage.idl.h>
 
 #include <assert.h>
+
+#define SEND_MESSAGE_COUNT 1
+
+// --------------------------------------
+typedef struct {
+    struct traffic_light_IDiagMessage_proxy *proxy;
+    traffic_light_IDiagMessage_Write_req *req;
+    traffic_light_IDiagMessage_Write_res *res;
+    struct nk_arena *reqArena;
+    struct nk_arena *resArena;
+} TransportDescriptor;
+
+#define DESCR_INIT(proxyIn, reqIn, resIn, reqArenaIn, resArenaIn) \
+        {                                           \
+            .proxy = proxyIn,                       \
+            .req = reqIn,                           \
+            .res = resIn,                           \
+            .reqArena = reqArenaIn,                 \
+            .resArena = resArenaIn,                 \
+        }
+
+static void send_error_message(TransportDescriptor *desc, unsigned messageCounter)
+{
+    int logMessageLength = 0;
+    char logMessage[traffic_light_IDiagMessage_Write_req_message_elem_size];
+
+    nk_arena_reset(desc->reqArena);
+
+    nk_ptr_t *message = nk_arena_alloc(nk_ptr_t, desc->reqArena, &(desc->req->message[0]), SEND_MESSAGE_COUNT);
+    if (message == RTL_NULL) {
+        fprintf(stderr, "[LightsGPIO  ] Error: can`t allocate memory in arena!\n");
+        return;
+    }
+
+    logMessageLength = rtl_snprintf(logMessage, traffic_light_IDiagMessage_Write_req_message_elem_size, "Log message %u", messageCounter);
+    if (logMessageLength < 0) {
+        fprintf(stderr, "[LightsGPIO  ] Error: length of message is negative number!\n");
+        return;
+    }
+
+    nk_char_t *str = nk_arena_alloc(nk_char_t, desc->reqArena, &message[0], (nk_size_t) (logMessageLength + 1));
+    if (str == RTL_NULL) {
+        fprintf(stderr, "[LightsGPIO] Error: can`t allocate memory in arena!\n");
+        return;
+    }
+
+    rtl_strncpy(str, logMessage, (rtl_size_t) (logMessageLength + 1));
+
+    if (traffic_light_IDiagMessage_Write(&desc->proxy->base, desc->req, desc->reqArena, desc->res, desc->resArena) == NK_EOK) {
+        messageCounter++;
+    }
+    else {
+        fprintf(stderr, "[LightsGPIO  ] Error: can`t send message to Logger entity!\n");
+    }
+
+    fprintf(stderr, "[LightsGPIO] write in log : %s\n", logMessage);
+}
+// --------------------------------------
+
 
 /* Type of interface implementing object. */
 typedef struct IModeImpl {
@@ -52,48 +113,7 @@ static struct traffic_light_IMode *CreateIModeImpl(rtl_uint32_t step) {
 
 
 
-static void send_error_message(nk_uint32_t code, char *message) {
-    NkKosTransport transport;
-    struct traffic_light_IDiagMessage_proxy proxy;
-    Handle handle = ServiceLocatorConnect("gpio_diag_connection");
-    assert(handle != INVALID_HANDLE);
-    NkKosTransport_Init(&transport, handle, NK_NULL, 0);
-    nk_iid_t riid = ServiceLocatorGetRiid(handle, "hwDiag.message");
-    assert(riid != INVALID_RIID);
-    traffic_light_IDiagMessage_proxy_init(&proxy, &transport.base, riid);
 
-    traffic_light_IDiagMessage_FDiagMessage_req req;
-    traffic_light_IDiagMessage_FDiagMessage_res res;
-
-    char *staticMsg = "Message to demonstrate error description sending";
-
-    const size_t bufSize = 128;
-
-    char reqBuffer[bufSize];
-
-    struct nk_arena reqArena = NK_ARENA_INITIALIZER(reqBuffer, reqBuffer + sizeof(reqBuffer));
-    //todo add folding here
-    nk_ptr_t *msg = nk_arena_alloc(nk_char_t,
-                                   &reqArena,
-                                   staticMsg,
-                                   1);
-
-    if (msg == RTL_NULL) {
-        fprintf(stderr, "[LightsGPIO   ] Arena nk_ptr_t allocation failed\n");
-        return;
-    }
-
-
-
-    req.inbound.code = 8;
-    //req.inbound.message =
-
-    if (traffic_light_IDiagMessage_FDiagMessage(&proxy.base, &req, NULL, &res, NULL) == rcOk) {
-        fprintf(stderr, "[LightsGPIO   ] Error message sent to HardwareDiagnostic\n");
-    }
-    else
-        fprintf(stderr, "[LIghtsGPIO   ] Failed to call traffic_light.Mode.Mode()\n");
-}
 
 /*
     Presentation functions
