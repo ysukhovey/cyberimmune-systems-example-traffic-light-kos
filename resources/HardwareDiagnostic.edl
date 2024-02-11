@@ -1,5 +1,5 @@
 entity traffic_light.HardwareDiagnostic
 
-components {
-    hwDiag : traffic_light.CDiagMessage
+endpoints {
+    write : traffic_light.IDiagMessage
 }

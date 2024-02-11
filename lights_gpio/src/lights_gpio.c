@@ -179,6 +179,31 @@ int main(void) {
     traffic_light_LightsGPIO_entity entity;
     traffic_light_LightsGPIO_entity_init(&entity, &component);
 
+    // HardwareDiagnostic connection init [START]
+    NkKosTransport hd_transport;
+    struct traffic_light_IDiagMessage_proxy hd_proxy;
+    unsigned messageCounter = 0;
+    setvbuf(stderr, NULL, _IOLBF, 0);
+    Handle hd_handle = ServiceLocatorConnect("gpio_diag_connection");
+    if (handle == INVALID_HANDLE) {
+        fprintf(stderr, "[LightsGPIO   ] %sError: can`t establish static IPC connection!%s\n", ANSI_COLOR_RED, ANSI_COLOR_RESET);
+        return EXIT_FAILURE;
+    }
+    NkKosTransport_Init(&hd_transport, hd_handle, NK_NULL, 0);
+    nk_iid_t hd_riid = ServiceLocatorGetRiid(hd_handle, "traffic_light.HardwareDiagnostic.write");
+    if (hd_riid == INVALID_RIID) {
+        fprintf(stderr, "[LightsGPIO   ] %sError: can`t get runtime implementation ID (RIID) of "
+                        "interface secure_logger.Logger.write!%s\n", ANSI_COLOR_RED, ANSI_COLOR_RESET);
+        return EXIT_FAILURE;
+    }
+
+    traffic_light_IDiagMessage_proxy_init(&hd_proxy, &hd_transport.base, hd_riid);
+
+    traffic_light_IDiagMessage_Write_req hd_req;
+    traffic_light_IDiagMessage_Write_res hd_res;
+
+    // HardwareDiagnostic connection init [END]
+
     fprintf(stderr, "[LightsGPIO   ] OK\n");
 
     char bs1[9], bs2[9], bs3[9], bs4[9];
@@ -214,40 +239,11 @@ int main(void) {
         }
 
         // todo Add message sending to the Hardware Diagnostic
-
-/*
-        NkKosTransport hd_transport;
-        struct Write_proxy hd_proxy;
-        unsigned messageCounter = 0;
-        setvbuf(stderr, NULL, _IOLBF, 0);
-        Handle hd_handle = ServiceLocatorConnect("gpio_diag_connection");
-        if (handle == INVALID_HANDLE) {
-            fprintf(stderr, "[LughtsGPIO  ] %sError: can`t establish static IPC connection!%s\n", ANSI_COLOR_RED, ANSI_COLOR_RESET);
-            return EXIT_FAILURE;
-        }
-        NkKosTransport_Init(&hd_transport, hd_handle, NK_NULL, 0);
-        nk_iid_t hd_riid = ServiceLocatorGetRiid(hd_handle, "secure_logger.Logger.write");
-        if (hd_riid == INVALID_RIID) {
-            fprintf(stderr, "[LightsGPIO   ] %sError: can`t get runtime implementation ID (RIID) of "
-                    "interface secure_logger.Logger.write!%s\n", ANSI_COLOR_RED, ANSI_COLOR_RESET);
-            return EXIT_FAILURE;
-        }
-
-        Write_proxy_init(&hd_proxy, &hd_transport.base, hd_riid);
-
-        */
-/* Structures of request and response. *//*
-
-        traffic_light_IDiagMessage_Write_req hd_req;
-        traffic_light_IDiagMessage_Write_res hd_res;
-
         char reqBuffer[traffic_light_IDiagMessage_Write_req_arena_size];
         struct nk_arena hd_reqArena = NK_ARENA_INITIALIZER(reqBuffer, reqBuffer + sizeof(reqBuffer));
-
         TransportDescriptor desc = DESCR_INIT(&hd_proxy, &hd_req, &hd_res, &hd_reqArena, RTL_NULL);
+        send_error_message(&desc);
 
-        send_error_message(&desc, messageCounter);
-*/
         // todo END send_error_message call
 
         /* Send response. */

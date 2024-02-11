@@ -19,6 +19,8 @@
 #define ANSI_COLOR_RED   "\x1b[91m"
 #define ANSI_COLOR_GREEN "\x1b[92m"
 #define ANSI_COLOR_RESET "\x1b[0m"
+#define ANSI_BLINK_START "\x1b[5m"
+#define ANSI_BLINK_RESET "\x1b[25m"
 
 static rtl_uint32_t check_combination(rtl_uint32_t combination) {
     size_t length = sizeof(TRAFFIC_LIGHT_MODES) / sizeof(TRAFFIC_LIGHT_MODES[0]);;
