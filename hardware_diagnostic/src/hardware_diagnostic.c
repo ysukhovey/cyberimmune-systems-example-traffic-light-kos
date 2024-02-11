@@ -34,5 +34,7 @@ int main(int argc, const char *argv[]) {
     char res_buffer[traffic_light_HardwareDiagnostic_entity_res_arena_size];
     struct nk_arena res_arena = NK_ARENA_INITIALIZER(res_buffer, res_buffer + sizeof(res_buffer));
 
+    fprintf(stderr, "[HardwareDiag ] OK\n");
+
     return EXIT_SUCCESS;
 }

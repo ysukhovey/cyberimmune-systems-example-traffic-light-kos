@@ -61,17 +61,18 @@ static void send_error_message(TransportDescriptor *desc) {
 
     nk_char_t *str = nk_arena_alloc(nk_char_t, desc->reqArena, &message[0], (nk_size_t) (logMessageLength + 1));
     if (str == RTL_NULL) {
-        fprintf(stderr, "[LightsGPIO] %sError: can`t allocate memory in arena!%s\n", ANSI_COLOR_RED, ANSI_COLOR_RESET);
+        fprintf(stderr, "[LightsGPIO   ] %sError: can`t allocate memory in arena!%s\n", ANSI_COLOR_RED, ANSI_COLOR_RESET);
         return;
     }
 
     rtl_strncpy(str, logMessage, (rtl_size_t) (logMessageLength + 1));
 
     if (traffic_light_IDiagMessage_Write(&desc->proxy->base, desc->req, desc->reqArena, desc->res, desc->resArena) != NK_EOK) {
-        fprintf(stderr, "[LightsGPIO   ] %sError: can`t send message to Logger entity!%s\n", ANSI_COLOR_RED, ANSI_COLOR_RESET);
+        fprintf(stderr, "[LightsGPIO   ] %sError: can`t send message to HardwareDiagnostic entity!%s\n", ANSI_COLOR_RED, ANSI_COLOR_RESET);
+        return;
     }
 
-    fprintf(stderr, "[LightsGPIO] write in log : %s\n", logMessage);
+    fprintf(stderr, "[LightsGPIO   ] write in log : %s\n", logMessage);
 }
 // --------------------------------------
 
@@ -193,7 +194,7 @@ int main(void) {
     nk_iid_t hd_riid = ServiceLocatorGetRiid(hd_handle, "traffic_light.HardwareDiagnostic.write");
     if (hd_riid == INVALID_RIID) {
         fprintf(stderr, "[LightsGPIO   ] %sError: can`t get runtime implementation ID (RIID) of "
-                        "interface secure_logger.Logger.write!%s\n", ANSI_COLOR_RED, ANSI_COLOR_RESET);
+                        "interface traffic_light.HardwareDiagnostic.write!%s\n", ANSI_COLOR_RED, ANSI_COLOR_RESET);
         return EXIT_FAILURE;
     }
 
