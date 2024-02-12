@@ -25,7 +25,7 @@ static nk_err_t WriteImpl(__rtl_unused struct traffic_light_IDiagMessage    *sel
 
     nk_ptr_t *message = nk_arena_get(nk_ptr_t, reqArena, &(req->inMessage.message), &msgCount);
     if (message == RTL_NULL) {
-        fprintf(stderr, "[HardwareDiag1] Error: can`t get messages from arena!\n");
+        fprintf(stderr, "[HardwareDiag ] Error: can`t get messages from arena!\n");
         return NK_EBADMSG;
     }
 
@@ -33,11 +33,11 @@ static nk_err_t WriteImpl(__rtl_unused struct traffic_light_IDiagMessage    *sel
     nk_uint32_t msgLen = 0;
     msg = nk_arena_get(nk_char_t, reqArena, &message[0], &msgLen);
     if (msg == RTL_NULL) {
-        fprintf(stderr, "[HardwareDiag2] Error: can`t get message from arena!\n");
+        fprintf(stderr, "[HardwareDiag ] Error: can`t get message from arena!\n");
         return NK_EBADMSG;
     }
 
-    fprintf(stderr, "[HardwareDiag3] GOT %08d: %s\n", req->inMessage.code, msg);
+    fprintf(stderr, "[HardwareDiag ] GOT %08d: %s\n", req->inMessage.code, msg);
 
     return NK_EOK;
 }
