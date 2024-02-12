@@ -30,6 +30,10 @@ request src=traffic_light.ControlSystem dst=traffic_light.ModeChecker endpoint=m
     grant()
 }
 
+request src=traffic_light.LightsGPIO dst=traffic_light.HardwareDiagnostic {
+    grant()
+}
+
 request src=traffic_light.ModeChecker
     dst=traffic_light.LightsGPIO
     endpoint=lightsGpio.mode

@@ -8,33 +8,100 @@
 #include <coresrv/nk/transport-kos.h>
 #include <coresrv/sl/sl_api.h>
 
+#include <rtl/string.h>
+
 #include <traffic_light/HardwareDiagnostic.edl.h>
 #include <traffic_light/IDiagMessage.idl.h>
 
 #include <assert.h>
 
-typedef struct IDiagMessageImpl {
-    struct traffic_light_IDiagMessage base;
-} IDiagMessageImpl;
+static nk_err_t WriteImpl(__rtl_unused struct traffic_light_IDiagMessage    *self,
+                          const traffic_light_IDiagMessage_Write_req        *req,
+                          const struct nk_arena                             *reqArena,
+                          __rtl_unused traffic_light_IDiagMessage_Write_res *res,
+                          __rtl_unused struct nk_arena                      *resArena) {
+    nk_uint32_t msgCount = 0;
+
+    nk_ptr_t *messages = nk_arena_get(nk_ptr_t, reqArena, &(req->message[0]), &msgCount);
+    if (messages == RTL_NULL) {
+        fprintf(stderr, "[HardwareDiag ] Error: can`t get messages from arena!\n");
+        return NK_EBADMSG;
+    }
+
+    for (rtl_size_t i = 0; i < msgCount; i++) {
+        nk_char_t *msg = RTL_NULL;
+        nk_uint32_t msgLen = 0;
+        msg = nk_arena_get(nk_char_t, reqArena, &messages[i], &msgLen);
+        if (msg == RTL_NULL) {
+            fprintf(stderr, "[HardwareDiag ] Error: can`t get message from arena!\n");
+            return NK_EBADMSG;
+        }
+
+        if (msgLen >traffic_light_IDiagMessage_Write_req_arena_size) {
+            fprintf(stderr, "[HardwareDiag ] Error: message length is bigger than arena size!\n");
+            return NK_EINVAL;
+        }
+        fprintf(stderr, "[HardwareDiag ] GOT %s\n", msg);
+    }
+
+    return NK_EOK;
+}
+
+static struct traffic_light_IDiagMessage *CreateIDiagMessageImpl(void) {
+    static const struct traffic_light_IDiagMessage_ops Ops = {
+                    .Write = WriteImpl
+            };
+    static traffic_light_IDiagMessage obj = {
+                    .ops = &Ops
+            };
+    return &obj;
+}
 
 int main(int argc, const char *argv[]) {
-    NkKosTransport hw_diag_transport;
-    ServiceId iid;
+    NkKosTransport hwd_transport;
+    ServiceId hwd_iid;
 
-    Handle hw_diag_handle = ServiceLocatorRegister("gpio_diag_connection", NULL, 0, &iid);
-    assert(hw_diag_handle != INVALID_HANDLE);
+    Handle hwd_handle = ServiceLocatorRegister("gpio_diag_connection", NULL, 0, &hwd_iid);
+    assert(hwd_handle != INVALID_HANDLE);
 
-    NkKosTransport_Init(&hw_diag_transport, hw_diag_handle, NK_NULL, 0);
+    NkKosTransport_Init(&hwd_transport, hwd_handle, NK_NULL, 0);
 
-    traffic_light_HardwareDiagnostic_entity_req req;
-    char req_buffer[traffic_light_HardwareDiagnostic_entity_req_arena_size];
-    struct nk_arena req_arena = NK_ARENA_INITIALIZER(req_buffer, req_buffer + sizeof(req_buffer));
+    traffic_light_HardwareDiagnostic_entity_req hwd_req;
+    char hwd_req_buffer[traffic_light_HardwareDiagnostic_entity_req_arena_size];
+    struct nk_arena hwd_req_arena = NK_ARENA_INITIALIZER(hwd_req_buffer, hwd_req_buffer + sizeof(hwd_req_buffer));
 
-    traffic_light_HardwareDiagnostic_entity_res res;
-    char res_buffer[traffic_light_HardwareDiagnostic_entity_res_arena_size];
-    struct nk_arena res_arena = NK_ARENA_INITIALIZER(res_buffer, res_buffer + sizeof(res_buffer));
+    traffic_light_HardwareDiagnostic_entity_res hwd_res;
+    char hwd_res_buffer[traffic_light_HardwareDiagnostic_entity_res_arena_size];
+    struct nk_arena hwd_res_arena = NK_ARENA_INITIALIZER(hwd_res_buffer, hwd_res_buffer + sizeof(hwd_res_buffer));
+
+    traffic_light_HardwareDiagnostic_entity hwd_entity;
+    traffic_light_HardwareDiagnostic_entity_init(&hwd_entity, CreateIDiagMessageImpl());
 
     fprintf(stderr, "[HardwareDiag ] OK\n");
+
+    char decodedMessage[traffic_light_HardwareDiagnostic_component_req_arena_size];
+
+    do {
+        nk_req_reset(&hwd_req);
+        nk_arena_reset(&hwd_req_arena);
+
+        if (nk_transport_recv(&hwd_transport.base, &hwd_req.base_, &hwd_req_arena) == NK_EOK) {
+            // todo decode message
+/*
+            rtl_memset(decodedMessage, 0, traffic_light_HardwareDiagnostic_component_req_arena_size);
+            msgLen = 0;
+            msg = nk_arena_get(nk_char_t, hwd_req_arena, decodedMessage, &msgLen);
+            fprintf(stderr, "[HardwareDiag ] <== %s\n", decodedMessage);
+*/
+            traffic_light_HardwareDiagnostic_entity_dispatch(&hwd_entity, &hwd_req.base_, &hwd_req_arena, &hwd_res.base_, RTL_NULL);
+        } else {
+            fprintf(stderr, "[HardwareDiag ] nk_transport_recv error\n");
+        }
+
+        if (nk_transport_reply(&hwd_transport.base, &hwd_res.base_, RTL_NULL) != NK_EOK) {
+            fprintf(stderr, "[HardwareDiag ]  nk_transport_reply error\n");
+        }
+    } while (true);
 
     return EXIT_SUCCESS;
 }

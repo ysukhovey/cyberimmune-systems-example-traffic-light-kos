@@ -40,7 +40,7 @@ typedef struct {
             .resArena = resArenaIn,                 \
         }
 
-static void send_error_message(TransportDescriptor *desc) {
+static void send_diagnostic_message(TransportDescriptor *desc) {
     int logMessageLength = 0;
     char logMessage[traffic_light_IDiagMessage_Write_req_message_elem_size];
 
@@ -52,7 +52,6 @@ static void send_error_message(TransportDescriptor *desc) {
         return;
     }
 
-    // todo LOG MESSAGE IS HERE --------------------------------------------------------------------------------+
     logMessageLength = rtl_snprintf(logMessage, traffic_light_IDiagMessage_Write_req_message_elem_size, "Log message");
     if (logMessageLength < 0) {
         fprintf(stderr, "[LightsGPIO   ] %sError: length of message is negative number!%s\n", ANSI_COLOR_RED, ANSI_COLOR_RESET);
@@ -67,12 +66,13 @@ static void send_error_message(TransportDescriptor *desc) {
 
     rtl_strncpy(str, logMessage, (rtl_size_t) (logMessageLength + 1));
 
+    fprintf(stderr, "[LightsGPIO   ] ==> %s\n", logMessage);
+
     if (traffic_light_IDiagMessage_Write(&desc->proxy->base, desc->req, desc->reqArena, desc->res, desc->resArena) != NK_EOK) {
         fprintf(stderr, "[LightsGPIO   ] %sError: can`t send message to HardwareDiagnostic entity!%s\n", ANSI_COLOR_RED, ANSI_COLOR_RESET);
         return;
     }
 
-    fprintf(stderr, "[LightsGPIO   ] write in log : %s\n", logMessage);
 }
 // --------------------------------------
 
@@ -240,10 +240,11 @@ int main(void) {
         }
 
         // todo Add message sending to the Hardware Diagnostic
+        nk_req_reset(&hd_req);
         char reqBuffer[traffic_light_IDiagMessage_Write_req_arena_size];
         struct nk_arena hd_reqArena = NK_ARENA_INITIALIZER(reqBuffer, reqBuffer + sizeof(reqBuffer));
         TransportDescriptor desc = DESCR_INIT(&hd_proxy, &hd_req, &hd_res, &hd_reqArena, RTL_NULL);
-        send_error_message(&desc);
+        send_diagnostic_message(&desc);
 
         // todo END send_error_message call
 
