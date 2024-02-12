@@ -69,7 +69,7 @@ static void send_diagnostic_message(TransportDescriptor *desc, u_int32_t in_code
     rtl_strncpy(str, logMessage, (rtl_size_t) (logMessageLength + 1));
     desc->req->inMessage.code = in_code;
 
-    fprintf(stderr, "[LightsGPIO  *] ==> %08d\n", desc->req->inMessage.code);
+    fprintf(stderr, "[LightsGPIO   ] ==> %08d: %s\n", desc->req->inMessage.code, in_message);
 
     if (traffic_light_IDiagMessage_Write(&desc->proxy->base, desc->req, desc->reqArena, desc->res, desc->resArena) != NK_EOK) {
         fprintf(stderr, "[LightsGPIO   ] %sError: can`t send message to HardwareDiagnostic entity!%s\n", ANSI_COLOR_RED, ANSI_COLOR_RESET);
@@ -248,7 +248,7 @@ int main(void) {
         char buffer[traffic_light_IDiagMessage_Write_req_arena_size];
         rtl_memset(buffer, 0, traffic_light_IDiagMessage_Write_req_arena_size);
         rtl_snprintf(buffer, traffic_light_IDiagMessage_Write_req_arena_size - 1,
-                     "{traffic_lights: ['%s', '%s', '%s', '%s'], code: %08x}",
+                     "{traffic_lights: ['%s', '%s', '%s', '%s'], mode: %08x}",
                      (char *)&bs1, (char *)&bs2, (char *)&bs3, (char *)&bs4, (rtl_uint32_t) req.lightsGpio_mode.FMode.value);
         send_diagnostic_message(&desc, rand(), buffer);
 
