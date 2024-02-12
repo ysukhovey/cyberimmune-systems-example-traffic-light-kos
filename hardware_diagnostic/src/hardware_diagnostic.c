@@ -20,29 +20,24 @@ static nk_err_t WriteImpl(__rtl_unused struct traffic_light_IDiagMessage    *sel
                           const struct nk_arena                             *reqArena,
                           __rtl_unused traffic_light_IDiagMessage_Write_res *res,
                           __rtl_unused struct nk_arena                      *resArena) {
+
     nk_uint32_t msgCount = 0;
 
-    nk_ptr_t *messages = nk_arena_get(nk_ptr_t, reqArena, &(req->message[0]), &msgCount);
-    if (messages == RTL_NULL) {
-        fprintf(stderr, "[HardwareDiag ] Error: can`t get messages from arena!\n");
+    nk_ptr_t *message = nk_arena_get(nk_ptr_t, reqArena, &(req->inMessage.message), &msgCount);
+    if (message == RTL_NULL) {
+        fprintf(stderr, "[HardwareDiag1] Error: can`t get messages from arena!\n");
         return NK_EBADMSG;
     }
 
-    for (rtl_size_t i = 0; i < msgCount; i++) {
-        nk_char_t *msg = RTL_NULL;
-        nk_uint32_t msgLen = 0;
-        msg = nk_arena_get(nk_char_t, reqArena, &messages[i], &msgLen);
-        if (msg == RTL_NULL) {
-            fprintf(stderr, "[HardwareDiag ] Error: can`t get message from arena!\n");
-            return NK_EBADMSG;
-        }
-
-        if (msgLen >traffic_light_IDiagMessage_Write_req_arena_size) {
-            fprintf(stderr, "[HardwareDiag ] Error: message length is bigger than arena size!\n");
-            return NK_EINVAL;
-        }
-        fprintf(stderr, "[HardwareDiag ] GOT %s\n", msg);
+    nk_char_t *msg = RTL_NULL;
+    nk_uint32_t msgLen = 0;
+    msg = nk_arena_get(nk_char_t, reqArena, &message[0], &msgLen);
+    if (msg == RTL_NULL) {
+        fprintf(stderr, "[HardwareDiag2] Error: can`t get message from arena!\n");
+        return NK_EBADMSG;
     }
+
+    fprintf(stderr, "[HardwareDiag3] GOT %08d: %s\n", req->inMessage.code, msg);
 
     return NK_EOK;
 }
@@ -86,13 +81,6 @@ int main(int argc, const char *argv[]) {
         nk_arena_reset(&hwd_req_arena);
 
         if (nk_transport_recv(&hwd_transport.base, &hwd_req.base_, &hwd_req_arena) == NK_EOK) {
-            // todo decode message
-/*
-            rtl_memset(decodedMessage, 0, traffic_light_HardwareDiagnostic_component_req_arena_size);
-            msgLen = 0;
-            msg = nk_arena_get(nk_char_t, hwd_req_arena, decodedMessage, &msgLen);
-            fprintf(stderr, "[HardwareDiag ] <== %s\n", decodedMessage);
-*/
             traffic_light_HardwareDiagnostic_entity_dispatch(&hwd_entity, &hwd_req.base_, &hwd_req_arena, &hwd_res.base_, RTL_NULL);
         } else {
             fprintf(stderr, "[HardwareDiag ] nk_transport_recv error\n");

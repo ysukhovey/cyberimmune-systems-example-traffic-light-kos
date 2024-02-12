@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include <stdbool.h>
 #include <rtl/string.h>
 #include <rtl/stdio.h>
@@ -19,8 +20,6 @@
 #define ANSI_COLOR_RED   "\x1b[91m"
 #define ANSI_COLOR_GREEN "\x1b[92m"
 #define ANSI_COLOR_RESET "\x1b[0m"
-
-#define SEND_MESSAGE_COUNT 1
 
 // --------------------------------------
 typedef struct {
@@ -40,39 +39,42 @@ typedef struct {
             .resArena = resArenaIn,                 \
         }
 
-static void send_diagnostic_message(TransportDescriptor *desc) {
+static void send_diagnostic_message(TransportDescriptor *desc, u_int32_t in_code, char *in_message) {
+    if (in_message == NULL) return;
+
     int logMessageLength = 0;
-    char logMessage[traffic_light_IDiagMessage_Write_req_message_elem_size];
+    char logMessage[traffic_light_IDiagMessage_Write_req_inMessage_message_size];
+    rtl_memset(logMessage, 0, traffic_light_IDiagMessage_Write_req_inMessage_message_size);
 
     nk_arena_reset(desc->reqArena);
 
-    nk_ptr_t *message = nk_arena_alloc(nk_ptr_t, desc->reqArena, &(desc->req->message[0]), SEND_MESSAGE_COUNT);
+    nk_ptr_t *message = nk_arena_alloc(nk_ptr_t, desc->reqArena, &(desc->req->inMessage.message), 1);
     if (message == RTL_NULL) {
         fprintf(stderr, "[LightsGPIO   ] %sError: can`t allocate memory in arena!%s\n", ANSI_COLOR_RED, ANSI_COLOR_RESET);
         return;
     }
 
-    logMessageLength = rtl_snprintf(logMessage, traffic_light_IDiagMessage_Write_req_message_elem_size, "Log message");
+    logMessageLength = rtl_snprintf(logMessage, traffic_light_IDiagMessage_Write_req_inMessage_message_size, in_message);
     if (logMessageLength < 0) {
         fprintf(stderr, "[LightsGPIO   ] %sError: length of message is negative number!%s\n", ANSI_COLOR_RED, ANSI_COLOR_RESET);
         return;
     }
 
-    nk_char_t *str = nk_arena_alloc(nk_char_t, desc->reqArena, &message[0], (nk_size_t) (logMessageLength + 1));
+    nk_char_t *str = nk_arena_alloc(nk_char_t, desc->reqArena, &(message[0]), (nk_size_t) (logMessageLength + 1));
     if (str == RTL_NULL) {
         fprintf(stderr, "[LightsGPIO   ] %sError: can`t allocate memory in arena!%s\n", ANSI_COLOR_RED, ANSI_COLOR_RESET);
         return;
     }
 
     rtl_strncpy(str, logMessage, (rtl_size_t) (logMessageLength + 1));
+    desc->req->inMessage.code = in_code;
 
-    fprintf(stderr, "[LightsGPIO   ] ==> %s\n", logMessage);
+    fprintf(stderr, "[LightsGPIO  *] ==> %08d\n", desc->req->inMessage.code);
 
     if (traffic_light_IDiagMessage_Write(&desc->proxy->base, desc->req, desc->reqArena, desc->res, desc->resArena) != NK_EOK) {
         fprintf(stderr, "[LightsGPIO   ] %sError: can`t send message to HardwareDiagnostic entity!%s\n", ANSI_COLOR_RED, ANSI_COLOR_RESET);
         return;
     }
-
 }
 // --------------------------------------
 
@@ -183,8 +185,6 @@ int main(void) {
     // HardwareDiagnostic connection init [START]
     NkKosTransport hd_transport;
     struct traffic_light_IDiagMessage_proxy hd_proxy;
-    unsigned messageCounter = 0;
-    setvbuf(stderr, NULL, _IOLBF, 0);
     Handle hd_handle = ServiceLocatorConnect("gpio_diag_connection");
     if (handle == INVALID_HANDLE) {
         fprintf(stderr, "[LightsGPIO   ] %sError: can`t establish static IPC connection!%s\n", ANSI_COLOR_RED, ANSI_COLOR_RESET);
@@ -240,11 +240,17 @@ int main(void) {
         }
 
         // todo Add message sending to the Hardware Diagnostic
-        nk_req_reset(&hd_req);
+
         char reqBuffer[traffic_light_IDiagMessage_Write_req_arena_size];
         struct nk_arena hd_reqArena = NK_ARENA_INITIALIZER(reqBuffer, reqBuffer + sizeof(reqBuffer));
         TransportDescriptor desc = DESCR_INIT(&hd_proxy, &hd_req, &hd_res, &hd_reqArena, RTL_NULL);
-        send_diagnostic_message(&desc);
+
+        char buffer[traffic_light_IDiagMessage_Write_req_arena_size];
+        rtl_memset(buffer, 0, traffic_light_IDiagMessage_Write_req_arena_size);
+        rtl_snprintf(buffer, traffic_light_IDiagMessage_Write_req_arena_size - 1,
+                     "{traffic_lights: ['%s', '%s', '%s', '%s'], code: %08x}",
+                     (char *)&bs1, (char *)&bs2, (char *)&bs3, (char *)&bs4, (rtl_uint32_t) req.lightsGpio_mode.FMode.value);
+        send_diagnostic_message(&desc, rand(), buffer);
 
         // todo END send_error_message call
 
