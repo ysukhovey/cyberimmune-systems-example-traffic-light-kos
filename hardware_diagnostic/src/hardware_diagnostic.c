@@ -66,15 +66,11 @@ int main(int argc, const char *argv[]) {
     struct nk_arena hwd_req_arena = NK_ARENA_INITIALIZER(hwd_req_buffer, hwd_req_buffer + sizeof(hwd_req_buffer));
 
     traffic_light_HardwareDiagnostic_entity_res hwd_res;
-    char hwd_res_buffer[traffic_light_HardwareDiagnostic_entity_res_arena_size];
-    struct nk_arena hwd_res_arena = NK_ARENA_INITIALIZER(hwd_res_buffer, hwd_res_buffer + sizeof(hwd_res_buffer));
 
     traffic_light_HardwareDiagnostic_entity hwd_entity;
     traffic_light_HardwareDiagnostic_entity_init(&hwd_entity, CreateIDiagMessageImpl());
 
     fprintf(stderr, "[HardwareDiag ] OK\n");
-
-    char decodedMessage[traffic_light_HardwareDiagnostic_component_req_arena_size];
 
     do {
         nk_req_reset(&hwd_req);

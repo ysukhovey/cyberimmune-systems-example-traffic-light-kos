@@ -321,7 +321,7 @@ int main(void) {
         rtl_snprintf(buffer, traffic_light_IDiagMessage_Write_req_arena_size - 1,
                      "{traffic_lights: ['%s', '%s', '%s', '%s'], mode: %08x}",
                      (char *)&bs1, (char *)&bs2, (char *)&bs3, (char *)&bs4, (rtl_uint32_t) req.lightsGpio_mode.FMode.value);
-        send_diagnostic_message(&desc, rand(), buffer);
+        send_diagnostic_message(&desc, (u_int32_t)rand(), buffer);
 
         // todo END send_error_message call
 
