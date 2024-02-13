@@ -153,7 +153,6 @@ static char *blinkOff(char a, char b) {
     return ((b != '.') && (a != '.'))?ANSI_BLINK_OFF:"";
 }
 
-// todo implement
 static char* colorize_traffic_lights(char *binstr, char *colorized) {
     if (colorized == NULL) return "--------";
 
@@ -310,8 +309,6 @@ int main(void) {
                                                      &res.base_, &res_arena);
         }
 
-        // todo Add message sending to the Hardware Diagnostic
-
         char reqBuffer[traffic_light_IDiagMessage_Write_req_arena_size];
         struct nk_arena hd_reqArena = NK_ARENA_INITIALIZER(reqBuffer, reqBuffer + sizeof(reqBuffer));
         TransportDescriptor desc = DESCR_INIT(&hd_proxy, &hd_req, &hd_res, &hd_reqArena, RTL_NULL);
@@ -322,8 +319,6 @@ int main(void) {
                      "{traffic_lights: ['%s', '%s', '%s', '%s'], mode: %08x}",
                      (char *)&bs1, (char *)&bs2, (char *)&bs3, (char *)&bs4, (rtl_uint32_t) req.lightsGpio_mode.FMode.value);
         send_diagnostic_message(&desc, (u_int32_t)rand(), buffer);
-
-        // todo END send_error_message call
 
         /* Send response. */
         if (nk_transport_reply(&transport.base,
