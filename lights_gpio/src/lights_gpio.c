@@ -145,52 +145,55 @@ static void format_traffic_lights(u_int8_t n, char *binstr) {
 }
 
 
+static char *blinkOn(char a, char b) {
+    return ((b != '.') && (a != '.'))?ANSI_BLINK_ON:"";
+}
+
+static char *blinkOff(char a, char b) {
+    return ((b != '.') && (a != '.'))?ANSI_BLINK_OFF:"";
+}
 
 // todo implement
 static char* colorize_traffic_lights(char *binstr, char *colorized) {
     if (colorized == NULL) return "--------";
-    char *blinkOn = (binstr[7] != '.')?ANSI_BLINK_ON:"";
-    char *blinkOff = (binstr[7] != '.')?ANSI_BLINK_OFF:"";
 
-    sprintf(colorized, "%s%s%c%s%s%s%s%c%s%s%s%s%c%s%s%s%s%c%s%s%s%s%c%s%s%s..%s%s%s%c%s%s",
-            blinkOn,
+    sprintf(colorized, "%s%s%c%s%s%s%s%c%s%s%s%s%c%s%s%s%s%c%s%s%s%s%c%s%s%s..%s%s%c%s",
+            blinkOn(binstr[0], binstr[7]),
             (binstr[0] != '.')?ANSI_COLOR_RED:"",
             (binstr[0] != '.')?'R':'.',
             (binstr[0] != '.')?ANSI_COLOR_RESET:"",
-            blinkOff,
+            blinkOff(binstr[0], binstr[7]),
 
-            blinkOn,
+            blinkOn(binstr[1], binstr[7]),
             (binstr[1] != '.')?ANSI_COLOR_YELLOW:"",
             (binstr[1] != '.')?'Y':'.',
             (binstr[1] != '.')?ANSI_COLOR_RESET:"",
-            blinkOff,
+            blinkOff(binstr[1], binstr[7]),
 
-            blinkOn,
+            blinkOn(binstr[2], binstr[7]),
             (binstr[2] != '.')?ANSI_COLOR_GREEN:"",
             (binstr[2] != '.')?'G':'.',
             (binstr[2] != '.')?ANSI_COLOR_RESET:"",
-            blinkOff,
+            blinkOff(binstr[2], binstr[7]),
 
-            blinkOn,
+            blinkOn(binstr[3], binstr[7]),
             (binstr[3] != '.')?ANSI_COLOR_GREEN:"",
             (binstr[3] != '.')?'<':'.',
             (binstr[3] != '.')?ANSI_COLOR_RESET:"",
-            blinkOff,
+            blinkOff(binstr[3], binstr[7]),
 
-            blinkOn,
+            blinkOn(binstr[4], binstr[7]),
             (binstr[4] != '.')?ANSI_COLOR_GREEN:"",
             (binstr[4] != '.')?'>':'.',
             (binstr[4] != '.')?ANSI_COLOR_RESET:"",
-            blinkOff,
+            blinkOff(binstr[4], binstr[7]),
 
-            blinkOn,
-            blinkOff,
+            blinkOn(binstr[5], binstr[7]),
+            blinkOff(binstr[5], binstr[7]),
 
-            blinkOn,
             (binstr[7] != '.')?ANSI_COLOR_CYAN:"",
             (binstr[7] != '.')?'B':'.',
-            (binstr[7] != '.')?ANSI_COLOR_RESET:"",
-            blinkOff
+            (binstr[7] != '.')?ANSI_COLOR_RESET:""
 
             );
     return colorized;
