@@ -17,9 +17,14 @@
 
 #include <assert.h>
 
-#define ANSI_COLOR_RED   "\x1b[91m"
-#define ANSI_COLOR_GREEN "\x1b[92m"
-#define ANSI_COLOR_RESET "\x1b[0m"
+#define ANSI_COLOR_BLACK    "\x1b[30m"
+#define ANSI_COLOR_CYAN     "\x1b[36m"
+#define ANSI_COLOR_RED      "\x1b[91m"
+#define ANSI_COLOR_YELLOW   "\x1b[93m"
+#define ANSI_COLOR_GREEN    "\x1b[92m"
+#define ANSI_COLOR_RESET    "\x1b[0m"
+#define ANSI_BLINK_ON       "\x1b[5m"
+#define ANSI_BLINK_OFF      "\x1b[25m"
 
 // --------------------------------------
 typedef struct {
@@ -139,6 +144,60 @@ static void format_traffic_lights(u_int8_t n, char *binstr) {
 
 }
 
+
+static char *blinkOn(char a, char b) {
+    return ((b != '.') && (a != '.'))?ANSI_BLINK_ON:"";
+}
+
+static char *blinkOff(char a, char b) {
+    return ((b != '.') && (a != '.'))?ANSI_BLINK_OFF:"";
+}
+
+static char* colorize_traffic_lights(char *binstr, char *colorized) {
+    if (colorized == NULL) return "--------";
+
+    sprintf(colorized, "%s%s%c%s%s%s%s%c%s%s%s%s%c%s%s%s%s%c%s%s%s%s%c%s%s%s..%s%s%c%s",
+            blinkOn(binstr[0], binstr[7]),
+            (binstr[0] != '.')?ANSI_COLOR_RED:"",
+            (binstr[0] != '.')?'R':'.',
+            (binstr[0] != '.')?ANSI_COLOR_RESET:"",
+            blinkOff(binstr[0], binstr[7]),
+
+            blinkOn(binstr[1], binstr[7]),
+            (binstr[1] != '.')?ANSI_COLOR_YELLOW:"",
+            (binstr[1] != '.')?'Y':'.',
+            (binstr[1] != '.')?ANSI_COLOR_RESET:"",
+            blinkOff(binstr[1], binstr[7]),
+
+            blinkOn(binstr[2], binstr[7]),
+            (binstr[2] != '.')?ANSI_COLOR_GREEN:"",
+            (binstr[2] != '.')?'G':'.',
+            (binstr[2] != '.')?ANSI_COLOR_RESET:"",
+            blinkOff(binstr[2], binstr[7]),
+
+            blinkOn(binstr[3], binstr[7]),
+            (binstr[3] != '.')?ANSI_COLOR_GREEN:"",
+            (binstr[3] != '.')?'<':'.',
+            (binstr[3] != '.')?ANSI_COLOR_RESET:"",
+            blinkOff(binstr[3], binstr[7]),
+
+            blinkOn(binstr[4], binstr[7]),
+            (binstr[4] != '.')?ANSI_COLOR_GREEN:"",
+            (binstr[4] != '.')?'>':'.',
+            (binstr[4] != '.')?ANSI_COLOR_RESET:"",
+            blinkOff(binstr[4], binstr[7]),
+
+            blinkOn(binstr[5], binstr[7]),
+            blinkOff(binstr[5], binstr[7]),
+
+            (binstr[7] != '.')?ANSI_COLOR_CYAN:"",
+            (binstr[7] != '.')?'B':'.',
+            (binstr[7] != '.')?ANSI_COLOR_RESET:""
+
+            );
+    return colorized;
+}
+
 /* Lights GPIO entry point. */
 int main(void) {
     NkKosTransport transport;
@@ -209,6 +268,13 @@ int main(void) {
 
     char bs1[9], bs2[9], bs3[9], bs4[9];
 
+    char ctl1[128], ctl2[128], ctl3[128], ctl4[128];
+    rtl_memset(ctl1, 0, 128);
+    rtl_memset(ctl2, 0, 128);
+    rtl_memset(ctl3, 0, 128);
+    rtl_memset(ctl4, 0, 128);
+
+
     /* Dispatch loop implementation. */
     do {
         /* Flush request/response buffers. */
@@ -231,15 +297,17 @@ int main(void) {
             format_traffic_lights(((u_int8_t*)&req.lightsGpio_mode.FMode.value)[2], (char *)&bs3);
             format_traffic_lights(((u_int8_t*)&req.lightsGpio_mode.FMode.value)[3], (char *)&bs4);
 
-            fprintf(stderr, "[LightsGPIO   ] GOT %08x |%s|%s|%s|%s|\n", (rtl_uint32_t) req.lightsGpio_mode.FMode.value,
-                    bs1, bs2, bs3, bs4
+            fprintf(stderr, "[LightsGPIO   ] GOT %08x |%s|%s|%s|%s|\n",
+                    (rtl_uint32_t) req.lightsGpio_mode.FMode.value,
+                    colorize_traffic_lights(bs1, ctl1),
+                    colorize_traffic_lights(bs2, ctl2),
+                    colorize_traffic_lights(bs3, ctl3),
+                    colorize_traffic_lights(bs4, ctl4)
             );
 
             traffic_light_LightsGPIO_entity_dispatch(&entity, &req.base_, &req_arena,
                                                      &res.base_, &res_arena);
         }
-
-        // todo Add message sending to the Hardware Diagnostic
 
         char reqBuffer[traffic_light_IDiagMessage_Write_req_arena_size];
         struct nk_arena hd_reqArena = NK_ARENA_INITIALIZER(reqBuffer, reqBuffer + sizeof(reqBuffer));
@@ -250,9 +318,7 @@ int main(void) {
         rtl_snprintf(buffer, traffic_light_IDiagMessage_Write_req_arena_size - 1,
                      "{traffic_lights: ['%s', '%s', '%s', '%s'], mode: %08x}",
                      (char *)&bs1, (char *)&bs2, (char *)&bs3, (char *)&bs4, (rtl_uint32_t) req.lightsGpio_mode.FMode.value);
-        send_diagnostic_message(&desc, rand(), buffer);
-
-        // todo END send_error_message call
+        send_diagnostic_message(&desc, (u_int32_t)rand(), buffer);
 
         /* Send response. */
         if (nk_transport_reply(&transport.base,
