@@ -7,6 +7,9 @@ use Mojolicious::Lite -signatures;
 use JSON::PP;
 use Time::Moment;
 
+# Set to 'true' to run the production version
+my $PRODUCTION = 'false';
+
 my @TRAFFIC_LIGHTS = (
     '0x41414141',
     '0x55555555'
@@ -54,7 +57,10 @@ post '/status' => sub($context) {
     $context->render(json => encode_json { 'result', { 'status' => $status, action => 'accepted'} });
 };
 
-#app->mode('production');
+if ($PRODUCTION eq 'true') {
+    app->mode('production')
+};
+
 app->start;
 
 __DATA__

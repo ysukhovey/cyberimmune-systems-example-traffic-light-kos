@@ -82,16 +82,16 @@ request {
         match dst = kl.VfsNet                             { grant() }
     }
 
-    match src = kl.rump.Dhcpcd, dst = kl.VfsRamFs         { grant () }
-    match src = kl.rump.Dhcpcd, dst = kl.VfsNet           { grant () }
-    match src = kl.VfsSdCardFs, dst = kl.drivers.SDCard   { grant () }
-    match src = kl.VfsRamFs, dst = kl.drivers.RAMDisk     { grant () }
+    match src = kl.rump.Dhcpcd, dst = kl.VfsRamFs         { grant() }
+    match src = kl.rump.Dhcpcd, dst = kl.VfsNet           { grant() }
+    match src = kl.VfsSdCardFs, dst = kl.drivers.SDCard   { grant() }
+    match src = kl.VfsRamFs, dst = kl.drivers.RAMDisk     { grant() }
 
 /*
     match dst = echo.Server endpoint = Server.ping method = Ping  {
-        match src = echo.Client2                          { grant () }
-        match src = echo.Client                           { grant () }
-        match src = echo.Connector                        { grant () }
+        match src = echo.Client2                          { grant() }
+        match src = echo.Client                           { grant() }
+        match src = echo.Connector                        { grant() }
     }
 */
 

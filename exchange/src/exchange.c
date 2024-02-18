@@ -21,8 +21,8 @@
 
 #define DISCOVERING_IFACE_MAX   10
 #define TIME_STEP_SEC           5
-#define HOST_IP                 "172.20.172.221"
-#define HOST_PORT               8081
+#define HOST_IP                 "172.17.0.1"
+#define HOST_PORT               3000
 #define NUM_RETRIES             10
 #define MSG_BUF_SIZE            1024
 #define MSG_CHUNK_BUF_SIZE      256
@@ -62,8 +62,7 @@ uint32_t request_data_from_http_server() {
     int res = -1;
 
     res = -1;
-    for (int i = 0; res == -1 && i < NUM_RETRIES; i++)
-    {
+    for (int i = 0; res == -1 && i < NUM_RETRIES; i++) {
         sleep(1); // Wait some time for server be ready.
         res = connect(sockfd, (SA*)&servaddr, sizeof(servaddr));
     }
@@ -81,8 +80,8 @@ uint32_t request_data_from_http_server() {
     size_t n;
 
     snprintf(request_data, MSG_CHUNK_BUF_SIZE,
-             "GET /mode/112233 HTTP/1.1\r\n"
-             "Host: 172.20.172.221:5765\r\n\r\n"
+             "GET /traffic_light HTTP/1.1\r\n"
+             "Host: 172.17.0.1:3000\r\n\r\n"
             // "Host-Agent: KOS\r\n"
             // "Accept: */*\r\n"
     );
