@@ -8,7 +8,6 @@ struct DiagnosticMessage {
     UInt32 code;
     MsgString message;
 }
-//typedef array<DiagnosticMessage, MaxLogMessageCount> Message;
 
 interface {
     Write(in DiagnosticMessage inMessage);

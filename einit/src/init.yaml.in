@@ -5,6 +5,8 @@ entities:
   connections:
   - target: traffic_light.ModeChecker
     id: mode_checker_connection
+#  - target: traffic_light.Exchange
+#    id: cs_exchange_connection
 @INIT_ControlSystem_ENTITY_CONNECTIONS@
 
 # `ModeChecker` entity can call `LightsGPIO`.
@@ -28,3 +30,9 @@ entities:
       id: gpio_diag_connection
 @INIT_LightsGPIO_ENTITY_CONNECTIONS@
 
+# 'Exchange' entity
+- name: traffic_light.Exchange
+#  connections:
+#    - target: traffic_light.ControlSystem
+#      id: exchange_cs_connection
+@INIT_Exchange_ENTITY_CONNECTIONS@

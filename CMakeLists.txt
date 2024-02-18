@@ -19,9 +19,11 @@ nk_build_edl_files (traffic_light_lights_gpio_edl_files CDL_TARGET traffic_light
 nk_build_edl_files (traffic_light_control_system_edl_files CDL_TARGET traffic_light_cdl_files  NK_MODULE "traffic_light" EDL "resources/ControlSystem.edl")
 nk_build_edl_files (traffic_light_mode_checker_edl_files CDL_TARGET traffic_light_cdl_files NK_MODULE "traffic_light" EDL "resources/ModeChecker.edl")
 nk_build_edl_files (traffic_light_hardware_diagnostic_edl_files CDL_TARGET traffic_light_cdl_files NK_MODULE "traffic_light" EDL "resources/HardwareDiagnostic.edl")
+nk_build_edl_files (traffic_light_exchange_edl_files CDL_TARGET traffic_light_cdl_files NK_MODULE "traffic_light" EDL "resources/Exchange.edl")
 
 add_subdirectory (control_system)
 add_subdirectory (mode_checker)
 add_subdirectory (hardware_diagnostic)
 add_subdirectory (lights_gpio)
+add_subdirectory (exchange)
 add_subdirectory (einit)

@@ -16,6 +16,7 @@ use EDL traffic_light.ControlSystem
 use EDL traffic_light.ModeChecker
 use EDL traffic_light.HardwareDiagnostic
 use EDL traffic_light.LightsGPIO
+use EDL traffic_light.Exchange
 
 /* Execution of entities allowed. */
 execute {
@@ -55,6 +56,10 @@ request src=traffic_light.ModeChecker dst=kl.core.Core {
 }
 
 request src=traffic_light.LightsGPIO dst=kl.core.Core {
+    grant()
+}
+
+request src=traffic_light.Exchange dst=kl.core.Core {
     grant()
 }
 

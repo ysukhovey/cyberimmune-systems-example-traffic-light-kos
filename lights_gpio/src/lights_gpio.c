@@ -15,74 +15,9 @@
 #include <traffic_light/LightsGPIO.edl.h>
 #include <traffic_light/IDiagMessage.idl.h>
 
+#include "messages.h"
+#include "presentation.h"
 #include <assert.h>
-
-#define ANSI_COLOR_BLACK    "\x1b[30m"
-#define ANSI_COLOR_CYAN     "\x1b[36m"
-#define ANSI_COLOR_RED      "\x1b[91m"
-#define ANSI_COLOR_YELLOW   "\x1b[93m"
-#define ANSI_COLOR_GREEN    "\x1b[92m"
-#define ANSI_COLOR_RESET    "\x1b[0m"
-#define ANSI_BLINK_ON       "\x1b[5m"
-#define ANSI_BLINK_OFF      "\x1b[25m"
-
-// --------------------------------------
-typedef struct {
-    struct traffic_light_IDiagMessage_proxy *proxy;
-    traffic_light_IDiagMessage_Write_req *req;
-    traffic_light_IDiagMessage_Write_res *res;
-    struct nk_arena *reqArena;
-    struct nk_arena *resArena;
-} TransportDescriptor;
-
-#define DESCR_INIT(proxyIn, reqIn, resIn, reqArenaIn, resArenaIn) \
-        {                                           \
-            .proxy = proxyIn,                       \
-            .req = reqIn,                           \
-            .res = resIn,                           \
-            .reqArena = reqArenaIn,                 \
-            .resArena = resArenaIn,                 \
-        }
-
-static void send_diagnostic_message(TransportDescriptor *desc, u_int32_t in_code, char *in_message) {
-    if (in_message == NULL) return;
-
-    int logMessageLength = 0;
-    char logMessage[traffic_light_IDiagMessage_Write_req_inMessage_message_size];
-    rtl_memset(logMessage, 0, traffic_light_IDiagMessage_Write_req_inMessage_message_size);
-
-    nk_arena_reset(desc->reqArena);
-
-    nk_ptr_t *message = nk_arena_alloc(nk_ptr_t, desc->reqArena, &(desc->req->inMessage.message), 1);
-    if (message == RTL_NULL) {
-        fprintf(stderr, "[LightsGPIO   ] %sError: can`t allocate memory in arena!%s\n", ANSI_COLOR_RED, ANSI_COLOR_RESET);
-        return;
-    }
-
-    logMessageLength = rtl_snprintf(logMessage, traffic_light_IDiagMessage_Write_req_inMessage_message_size, in_message);
-    if (logMessageLength < 0) {
-        fprintf(stderr, "[LightsGPIO   ] %sError: length of message is negative number!%s\n", ANSI_COLOR_RED, ANSI_COLOR_RESET);
-        return;
-    }
-
-    nk_char_t *str = nk_arena_alloc(nk_char_t, desc->reqArena, &(message[0]), (nk_size_t) (logMessageLength + 1));
-    if (str == RTL_NULL) {
-        fprintf(stderr, "[LightsGPIO   ] %sError: can`t allocate memory in arena!%s\n", ANSI_COLOR_RED, ANSI_COLOR_RESET);
-        return;
-    }
-
-    rtl_strncpy(str, logMessage, (rtl_size_t) (logMessageLength + 1));
-    desc->req->inMessage.code = in_code;
-
-    fprintf(stderr, "[LightsGPIO   ] ==> %08d: %s\n", desc->req->inMessage.code, in_message);
-
-    if (traffic_light_IDiagMessage_Write(&desc->proxy->base, desc->req, desc->reqArena, desc->res, desc->resArena) != NK_EOK) {
-        fprintf(stderr, "[LightsGPIO   ] %sError: can`t send message to HardwareDiagnostic entity!%s\n", ANSI_COLOR_RED, ANSI_COLOR_RESET);
-        return;
-    }
-}
-// --------------------------------------
-
 
 /* Type of interface implementing object. */
 typedef struct IModeImpl {
@@ -118,84 +53,6 @@ static struct traffic_light_IMode *CreateIModeImpl(rtl_uint32_t step) {
     impl.step = step;
 
     return &impl.base;
-}
-
-/*
-    Presentation functions
- */
-static void format_traffic_lights(u_int8_t n, char *binstr) {
-    memset(binstr, 0, 9);
-    for (int i = 7; i >= 0; i--) {
-        int k = n >> i;
-        if (k & 1)
-            binstr[7 - i] = '1';
-        else
-            binstr[7 - i] = '0';
-    }
-
-    binstr[0] = (binstr[0] == '1' ? 'R' : '.');
-    binstr[1] = (binstr[1] == '1' ? 'Y' : '.');
-    binstr[2] = (binstr[2] == '1' ? 'G' : '.');
-    binstr[3] = (binstr[3] == '1' ? '<' : '.');
-    binstr[4] = (binstr[4] == '1' ? '>' : '.');
-    binstr[5] = (binstr[5] == '1' ? '?' : '.');
-    binstr[6] = (binstr[6] == '1' ? '?' : '.');
-    binstr[7] = (binstr[7] == '1' ? 'B' : '.');
-
-}
-
-
-static char *blinkOn(char a, char b) {
-    return ((b != '.') && (a != '.'))?ANSI_BLINK_ON:"";
-}
-
-static char *blinkOff(char a, char b) {
-    return ((b != '.') && (a != '.'))?ANSI_BLINK_OFF:"";
-}
-
-static char* colorize_traffic_lights(char *binstr, char *colorized) {
-    if (colorized == NULL) return "--------";
-
-    sprintf(colorized, "%s%s%c%s%s%s%s%c%s%s%s%s%c%s%s%s%s%c%s%s%s%s%c%s%s%s..%s%s%c%s",
-            blinkOn(binstr[0], binstr[7]),
-            (binstr[0] != '.')?ANSI_COLOR_RED:"",
-            (binstr[0] != '.')?'R':'.',
-            (binstr[0] != '.')?ANSI_COLOR_RESET:"",
-            blinkOff(binstr[0], binstr[7]),
-
-            blinkOn(binstr[1], binstr[7]),
-            (binstr[1] != '.')?ANSI_COLOR_YELLOW:"",
-            (binstr[1] != '.')?'Y':'.',
-            (binstr[1] != '.')?ANSI_COLOR_RESET:"",
-            blinkOff(binstr[1], binstr[7]),
-
-            blinkOn(binstr[2], binstr[7]),
-            (binstr[2] != '.')?ANSI_COLOR_GREEN:"",
-            (binstr[2] != '.')?'G':'.',
-            (binstr[2] != '.')?ANSI_COLOR_RESET:"",
-            blinkOff(binstr[2], binstr[7]),
-
-            blinkOn(binstr[3], binstr[7]),
-            (binstr[3] != '.')?ANSI_COLOR_GREEN:"",
-            (binstr[3] != '.')?'<':'.',
-            (binstr[3] != '.')?ANSI_COLOR_RESET:"",
-            blinkOff(binstr[3], binstr[7]),
-
-            blinkOn(binstr[4], binstr[7]),
-            (binstr[4] != '.')?ANSI_COLOR_GREEN:"",
-            (binstr[4] != '.')?'>':'.',
-            (binstr[4] != '.')?ANSI_COLOR_RESET:"",
-            blinkOff(binstr[4], binstr[7]),
-
-            blinkOn(binstr[5], binstr[7]),
-            blinkOff(binstr[5], binstr[7]),
-
-            (binstr[7] != '.')?ANSI_COLOR_CYAN:"",
-            (binstr[7] != '.')?'B':'.',
-            (binstr[7] != '.')?ANSI_COLOR_RESET:""
-
-            );
-    return colorized;
 }
 
 /* Lights GPIO entry point. */
