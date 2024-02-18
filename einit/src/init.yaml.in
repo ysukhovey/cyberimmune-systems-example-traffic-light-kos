@@ -32,7 +32,12 @@ entities:
 
 # 'Exchange' entity
 - name: traffic_light.Exchange
+  connections:
+  - target: kl.VfsNet
+    id: kl.VfsNet
 #  connections:
 #    - target: traffic_light.ControlSystem
 #      id: exchange_cs_connection
 @INIT_Exchange_ENTITY_CONNECTIONS@
+  
+@INIT_EXTERNAL_ENTITIES@

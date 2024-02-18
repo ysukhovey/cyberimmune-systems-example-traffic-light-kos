@@ -11,6 +11,14 @@ use nk.base._
 /* Declaration of entities. */
 use EDL Einit
 use EDL kl.core.Core
+use EDL kl.VfsRamFs
+use EDL kl.VfsSdCardFs
+use EDL kl.VfsNet
+use EDL kl.rump.Dhcpcd
+use EDL kl.drivers.SDCard
+use EDL kl.drivers.RAMDisk
+use EDL kl.drivers.BSP
+use EDL kl.drivers.GPIO
 
 use EDL traffic_light.ControlSystem
 use EDL traffic_light.ModeChecker
@@ -23,51 +31,72 @@ execute {
     grant()
 }
 
-request src=traffic_light.ControlSystem dst=kl.core.Core {
-    grant()
-}
+request {
+    match dst = kl.core.Core {
+        match src = Einit                                 { grant() }
+        match src = traffic_light.ControlSystem           { grant() }
+        match src = traffic_light.ModeChecker             { grant() }
+        match src = traffic_light.HardwareDiagnostic      { grant() }
+        match src = traffic_light.LightsGPIO              { grant() }
+        match src = traffic_light.Exchange                { grant() }
+        match src = kl.drivers.BSP                        { grant() }
+        match src = kl.drivers.GPIO                       { grant() }
+        match src = kl.rump.Dhcpcd                        { grant() }
+        match src = kl.drivers.RAMDisk                    { grant() }
+        match src = kl.VfsNet                             { grant() }
+        match src = kl.VfsRamFs                           { grant() }
+        match src = kl.VfsSdCardFs                        { grant() }
+        match src = kl.drivers.SDCard                     { grant() }
+        match src = kl.VfsRamFs                           { grant() }
+        match src = kl.VfsRamFs                           { grant() }
+    }
 
-request src=traffic_light.ControlSystem dst=traffic_light.ModeChecker endpoint=modeChecker.mode method=FMode {
-    grant()
-}
+    match dst = Einit {
+        match src = traffic_light.ControlSystem           { grant() }
+        match src = traffic_light.ModeChecker             { grant() }
+        match src = traffic_light.HardwareDiagnostic      { grant() }
+        match src = traffic_light.LightsGPIO              { grant() }
+        match src = traffic_light.Exchange                { grant() }
+    }
 
-request src=traffic_light.LightsGPIO dst=traffic_light.HardwareDiagnostic {
-    grant()
-}
+    match src = kl.core.Core                              { grant() }
 
-request src=traffic_light.ModeChecker
-    dst=traffic_light.LightsGPIO
-    endpoint=lightsGpio.mode
-    method=FMode {
+    match src = Einit                                     { grant() }
+
+    match src = traffic_light.ControlSystem, dst = traffic_light.ModeChecker endpoint=modeChecker.mode method=FMode {
+        grant()
+    }
+
+    match src=traffic_light.ModeChecker, dst=traffic_light.LightsGPIO endpoint=lightsGpio.mode method=FMode {
         assert(message.value != 0xffffffff)
         grant()
     }
 
-request src=Einit {
-    grant()
+    match src=traffic_light.LightsGPIO, dst=traffic_light.HardwareDiagnostic {
+        grant()
+    }
+
+    match src = traffic_light.Exchange {
+        match dst = kl.VfsSdCardFs                        { grant() }
+        match dst = kl.VfsRamFs                           { grant() }
+        match dst = kl.VfsNet                             { grant() }
+    }
+
+    match src = kl.rump.Dhcpcd, dst = kl.VfsRamFs         { grant () }
+    match src = kl.rump.Dhcpcd, dst = kl.VfsNet           { grant () }
+    match src = kl.VfsSdCardFs, dst = kl.drivers.SDCard   { grant () }
+    match src = kl.VfsRamFs, dst = kl.drivers.RAMDisk     { grant () }
+
+/*
+    match dst = echo.Server endpoint = Server.ping method = Ping  {
+        match src = echo.Client2                          { grant () }
+        match src = echo.Client                           { grant () }
+        match src = echo.Connector                        { grant () }
+    }
+*/
+
 }
 
-request src=kl.core.Core {
-    grant()
-}
-
-request src=traffic_light.ModeChecker dst=kl.core.Core {
-    grant()
-}
-
-request src=traffic_light.LightsGPIO dst=kl.core.Core {
-    grant()
-}
-
-request src=traffic_light.Exchange dst=kl.core.Core {
-    grant()
-}
-
-request src=traffic_light.HardwareDiagnostic dst=kl.core.Core {
-    grant()
-}
-
-/* Response messages allowed. */
 response {
     grant()
 }
@@ -76,7 +105,6 @@ error {
     grant()
 }
 
-/* Calls to the security interface are ignored. */
 security {
     grant()
 }

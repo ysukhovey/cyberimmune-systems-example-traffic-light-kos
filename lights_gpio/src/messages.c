@@ -20,8 +20,8 @@ void send_diagnostic_message(TransportDescriptor *desc, u_int32_t in_code, char 
         fprintf(stderr, "[LightsGPIO   ] Error: can`t allocate memory in arena!\n");
         return;
     }
+    logMessageLength = rtl_snprintf(logMessage, traffic_light_IDiagMessage_Write_req_inMessage_message_size, "%s", in_message);
 
-    logMessageLength = rtl_snprintf(logMessage, traffic_light_IDiagMessage_Write_req_inMessage_message_size, in_message);
     if (logMessageLength < 0) {
         fprintf(stderr, "[LightsGPIO   ] Error: length of message is negative number!\n");
         return;

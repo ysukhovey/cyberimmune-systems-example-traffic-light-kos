@@ -6,8 +6,51 @@ project (traffic_light)
 include (platform)
 initialize_platform (FORCE_STATIC)
 
+# Add functions for installing artefacts.
+include (platform/install)
+
+# Platform definitions.
+include (platform/options)
+
 # Tools for using NK parser.
 include (platform/nk)
+
+# Add package for working with the virtual file system.
+find_package (vfs REQUIRED)
+include_directories (${vfs_INCLUDE})
+
+# Add a package with the dhcpcd program implementation.
+find_package (rump REQUIRED COMPONENTS DHCPCD_ENTITY)
+include_directories (${rump_INCLUDE})
+
+# Add package with VFS program implementations.
+find_package (precompiled_vfs REQUIRED)
+include_directories (${precompiled_vfs_INCLUDE})
+
+# Choose configuration files and the network configuration mode.
+# If none of the options are selected, the ramfs device and the dynamic
+# network configuration with fallback to static mode are used.
+option (DHCPCD_FALLBACK "Configuration by /etc/dhcpcd.conf"           OFF)
+option (DHCPCD_DYNAMIC  "Configuration by /etc/dhcpcd_dynamic.config" OFF)
+option (DHCPCD_STATIC   "Configuration by /etc/dhcpcd_static.config"  OFF)
+
+# Attach the directory with the generated config header files.
+include_directories (${CMAKE_CURRENT_BINARY_DIR})
+set (RESOURCES ${CMAKE_SOURCE_DIR}/resources)
+
+# Recommended flags against vulnerabilities.
+# Recommended compiler flags against vulnerabilities.
+set(VULN_LDFLAGS "\
+    -Wl,-z,noexecstack \
+    -Wl,-z,separate-code \
+    -Wl,-z,now")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} \
+    -Wall -Wextra -Wconversion \
+    -fPIE -pie -D_FORTIFY_SOURCE=2 -O2 \
+    -fstack-protector-strong -fstack-clash-protection \
+    -mbranch-protection=standard \
+    -Wsign-conversion -Wformat=2 -Wformat-security -Werror=format-security \
+    -fsanitize=undefined -fsanitize-undefined-trap-on-error")
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
