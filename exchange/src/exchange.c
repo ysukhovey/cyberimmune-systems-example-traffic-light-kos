@@ -21,8 +21,9 @@
 
 #define DISCOVERING_IFACE_MAX   10
 #define TIME_STEP_SEC           5
-#define HOST_IP                 "172.17.0.1"
+#define HOST_IP                 "172.16.0.100"
 #define HOST_PORT               3000
+#define HOST_PATH               "/traffic_light"
 #define NUM_RETRIES             10
 #define MSG_BUF_SIZE            1024
 #define MSG_CHUNK_BUF_SIZE      256
@@ -68,11 +69,9 @@ uint32_t request_data_from_http_server() {
     }
 
     if (res != 0)
-        fprintf(stderr, "[Exchange     ] DEBUG: Connection with the server failed... %d\n\n\n", res);
+        fprintf(stderr, "[Exchange     ] DEBUG: Connection with the server failed... %d\n", res);
     else
-        fprintf(stderr, "[Exchange     ] DEBUG: Connected to the server..\n\n\n");
-
-    printf("preparing request..\n");
+        fprintf(stderr, "[Exchange     ] DEBUG: Connected to the server\n");
 
     char request_data[MSG_BUF_SIZE + 1];
     char response_data[MSG_BUF_SIZE + 1];
@@ -80,11 +79,13 @@ uint32_t request_data_from_http_server() {
     size_t n;
 
     snprintf(request_data, MSG_CHUNK_BUF_SIZE,
-             "GET /traffic_light HTTP/1.1\r\n"
-             "Host: 172.17.0.1:3000\r\n\r\n"
+             "GET %s HTTP/1.1\r\n"
+             "Host: %s:%d\r\n\r\n"
             // "Host-Agent: KOS\r\n"
             // "Accept: */*\r\n"
-    );
+            , HOST_PATH, HOST_IP, HOST_PORT);
+
+    //fprintf(stderr, "[Exchange     ] DEBUG: Request prepared:\n%s\n", request_data);
 
     request_len = strlen(request_data);
     write(sockfd, request_data, request_len);
@@ -94,9 +95,10 @@ uint32_t request_data_from_http_server() {
         fprintf(stderr, "[Exchange     ] Request sent, reading response..\n");
         while ((n = read(sockfd, response_data, MSG_BUF_SIZE)) > 0) {
             response_data[n] = '\0';
-            fprintf(stderr, "[Exchange     ] response data: \n%s\n", response_data);
+            fprintf(stderr, "[Exchange     ] response data: \n%s\n\n", response_data);
         }
     }
+
     close(sockfd);
 
     return EXIT_SUCCESS;
