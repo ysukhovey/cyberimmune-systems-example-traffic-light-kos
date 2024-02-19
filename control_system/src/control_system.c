@@ -84,6 +84,7 @@ int main(int argc, const char *argv[])
     traffic_light_IMode_FMode_res hwd_res;
     char hwd_res_buffer[traffic_light_IMode_FMode_res_arena_size];
     struct nk_arena hwd_res_arena = NK_ARENA_INITIALIZER(hwd_res_buffer, hwd_res_buffer + sizeof(hwd_res_buffer));
+    fprintf(stderr, "[ControlSystem] HardwareDiagnostic transport OK\n");
 
     // Transport infrastructure for Exchange messages
     NkKosTransport ex_transport;
@@ -98,7 +99,7 @@ int main(int argc, const char *argv[])
     char ex_res_buffer[traffic_light_IMode_FMode_res_arena_size];
     struct nk_arena ex_res_arena = NK_ARENA_INITIALIZER(ex_res_buffer, ex_res_buffer + sizeof(ex_res_buffer));
 
-    fprintf(stderr, "[ControlSystem] Exchange messages transport OK\n");
+    fprintf(stderr, "[ControlSystem] Exchange transport OK\n");
 
     traffic_light_ControlSystem_entity cs_entity;
     traffic_light_ControlSystem_entity_init(&cs_entity, CreateIModeImpl(0), CreateIModeImpl(0));
@@ -127,12 +128,13 @@ int main(int argc, const char *argv[])
         nk_req_reset(&hwd_req);
         nk_arena_reset(&hwd_req_arena);
 
+        traffic_light_ModeChecker_entity_dispatch(&cs_entity, &req.base_, &req_arena, &res.base_, &res_arena);
+
         /* Wait for request from Exchange */
         if (nk_transport_recv(&ex_transport.base, &ex_req.base_, &ex_req_arena) == NK_EOK) {
             req.value = ex_req.value;
             fprintf(stderr, "[ControlSystem] ==> ModeChecker %08x\n", (rtl_uint32_t) req.value);
             traffic_light_IMode_FMode(&proxy.base, &req, NULL, &res, NULL) == rcOk;
-            traffic_light_ModeChecker_entity_dispatch(&cs_entity, &req.base_, &req_arena, &res.base_, &res_arena);
         }
 
         /* Wait for request from HardwareDiagnostic */
@@ -142,11 +144,7 @@ int main(int argc, const char *argv[])
             //req.value = hwd_req.value;
             fprintf(stderr, "[ControlSystem] GOT Code from HardwareDiagnostic %08x\n", (rtl_uint32_t) hwd_req.value);
             //traffic_light_IMode_FMode(&proxy.base, &req, NULL, &res, NULL) == rcOk;
-
         }
-
-        nk_transport_reply(&hwd_transport.base, &hwd_res.base_, RTL_NULL);
-        nk_transport_reply(&ex_transport.base, &ex_res.base_, RTL_NULL);
     }
 
     /* Test loop. */
