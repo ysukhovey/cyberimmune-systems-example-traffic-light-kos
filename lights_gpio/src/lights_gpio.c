@@ -78,14 +78,12 @@ int main(void) {
      */
     traffic_light_LightsGPIO_entity_req req;
     char req_buffer[traffic_light_LightsGPIO_entity_req_arena_size];
-    struct nk_arena req_arena = NK_ARENA_INITIALIZER(req_buffer,
-                                                     req_buffer + sizeof(req_buffer));
+    struct nk_arena req_arena = NK_ARENA_INITIALIZER(req_buffer, req_buffer + sizeof(req_buffer));
 
     /* Prepare response structures: constant part and arena. */
     traffic_light_LightsGPIO_entity_res res;
     char res_buffer[traffic_light_LightsGPIO_entity_res_arena_size];
-    struct nk_arena res_arena = NK_ARENA_INITIALIZER(res_buffer,
-                                                     res_buffer + sizeof(res_buffer));
+    struct nk_arena res_arena = NK_ARENA_INITIALIZER(res_buffer, res_buffer + sizeof(res_buffer));
 
     /**
      * Initialize mode component dispatcher. 3 is the value of the step,
@@ -102,20 +100,17 @@ int main(void) {
     NkKosTransport hd_transport;
     struct traffic_light_IDiagMessage_proxy hd_proxy;
     Handle hd_handle = ServiceLocatorConnect("gpio_diag_connection");
-    if (handle == INVALID_HANDLE) {
-        fprintf(stderr, "[LightsGPIO   ] %sError: can`t establish static IPC connection!%s\n", ANSI_COLOR_RED, ANSI_COLOR_RESET);
+    if (hd_handle == INVALID_HANDLE) {
+        fprintf(stderr, "[LightsGPIO   ] ERR Can`t establish static IPC connection!\n");
         return EXIT_FAILURE;
     }
     NkKosTransport_Init(&hd_transport, hd_handle, NK_NULL, 0);
     nk_iid_t hd_riid = ServiceLocatorGetRiid(hd_handle, "traffic_light.HardwareDiagnostic.write");
     if (hd_riid == INVALID_RIID) {
-        fprintf(stderr, "[LightsGPIO   ] %sError: can`t get runtime implementation ID (RIID) of "
-                        "interface traffic_light.HardwareDiagnostic.write!%s\n", ANSI_COLOR_RED, ANSI_COLOR_RESET);
+        fprintf(stderr, "[LightsGPIO   ] ERR Can`t get runtime implementation ID (RIID) of interface traffic_light.HardwareDiagnostic.write!\n");
         return EXIT_FAILURE;
     }
-
     traffic_light_IDiagMessage_proxy_init(&hd_proxy, &hd_transport.base, hd_riid);
-
     traffic_light_IDiagMessage_Write_req hd_req;
     traffic_light_IDiagMessage_Write_res hd_res;
 
@@ -140,9 +135,7 @@ int main(void) {
         nk_arena_reset(&res_arena);
 
         /* Wait for request to lights gpio entity. */
-        if (nk_transport_recv(&transport.base,
-                              &req.base_,
-                              &req_arena) != NK_EOK) {
+        if (nk_transport_recv(&transport.base, &req.base_, &req_arena) != NK_EOK) {
             fprintf(stderr, "[LightsGPIO   ] nk_transport_recv error\n");
         } else {
             /**
@@ -162,8 +155,7 @@ int main(void) {
                     colorize_traffic_lights(bs4, ctl4)
             );
 
-            traffic_light_LightsGPIO_entity_dispatch(&entity, &req.base_, &req_arena,
-                                                     &res.base_, &res_arena);
+            traffic_light_LightsGPIO_entity_dispatch(&entity, &req.base_, &req_arena, &res.base_, &res_arena);
         }
 
         char reqBuffer[traffic_light_IDiagMessage_Write_req_arena_size];
@@ -175,7 +167,7 @@ int main(void) {
         rtl_snprintf(buffer, traffic_light_IDiagMessage_Write_req_arena_size - 1,
                      "{traffic_lights: ['%s', '%s', '%s', '%s'], mode: %08x}",
                      (char *)&bs1, (char *)&bs2, (char *)&bs3, (char *)&bs4, (rtl_uint32_t) req.lightsGpio_mode.FMode.value);
-        send_diagnostic_message(&desc, (u_int32_t)rand(), buffer);
+        send_diagnostic_message(&desc, (u_int32_t)rand(), buffer, "LightsGPIO");
 
         /* Send response. */
         if (nk_transport_reply(&transport.base,

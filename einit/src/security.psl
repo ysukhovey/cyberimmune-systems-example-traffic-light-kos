@@ -8,7 +8,6 @@ execute: kl.core.Execute
 /* Import the file with the declaration of basic security policy aliases. */
 use nk.base._
 
-/* Declaration of entities. */
 use EDL Einit
 use EDL kl.core.Core
 use EDL kl.VfsRamFs
@@ -26,7 +25,6 @@ use EDL traffic_light.HardwareDiagnostic
 use EDL traffic_light.LightsGPIO
 use EDL traffic_light.Exchange
 
-/* Execution of entities allowed. */
 execute {
     grant()
 }
@@ -67,12 +65,24 @@ request {
         grant()
     }
 
+    match src=traffic_light.ControlSystem, dst=traffic_light.Exchange {
+        grant()
+    }
+
     match src=traffic_light.ModeChecker, dst=traffic_light.LightsGPIO endpoint=lightsGpio.mode method=FMode {
         assert(message.value != 0xffffffff)
         grant()
     }
 
     match src=traffic_light.LightsGPIO, dst=traffic_light.HardwareDiagnostic {
+        grant()
+    }
+
+    match src=traffic_light.HardwareDiagnostic, dst=traffic_light.ControlSystem {
+        grant()
+    }
+
+    match src=traffic_light.Exchange, dst=traffic_light.ControlSystem {
         grant()
     }
 
@@ -86,15 +96,6 @@ request {
     match src = kl.rump.Dhcpcd, dst = kl.VfsNet           { grant() }
     match src = kl.VfsSdCardFs, dst = kl.drivers.SDCard   { grant() }
     match src = kl.VfsRamFs, dst = kl.drivers.RAMDisk     { grant() }
-
-/*
-    match dst = echo.Server endpoint = Server.ping method = Ping  {
-        match src = echo.Client2                          { grant() }
-        match src = echo.Client                           { grant() }
-        match src = echo.Connector                        { grant() }
-    }
-*/
-
 }
 
 response {

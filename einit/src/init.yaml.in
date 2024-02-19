@@ -5,8 +5,8 @@ entities:
   connections:
   - target: traffic_light.ModeChecker
     id: mode_checker_connection
-#  - target: traffic_light.Exchange
-#    id: cs_exchange_connection
+  - target: traffic_light.Exchange
+    id: cs_exchange_connection
 @INIT_ControlSystem_ENTITY_CONNECTIONS@
 
 # `ModeChecker` entity can call `LightsGPIO`.
@@ -37,9 +37,8 @@ entities:
   connections:
   - target: kl.VfsNet
     id: kl.VfsNet
-#  connections:
-#    - target: traffic_light.ControlSystem
-#      id: exchange_cs_connection
+  - target: traffic_light.ControlSystem
+    id: exchange_cs_connection
 @INIT_Exchange_ENTITY_CONNECTIONS+@
   
 @INIT_EXTERNAL_ENTITIES@

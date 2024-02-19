@@ -19,7 +19,7 @@ typedef struct {
             .resArena = resArenaIn                                  \
         }
 
-void send_diagnostic_message(TransportDescriptor *desc, u_int32_t in_code, char *in_message);
+void send_diagnostic_message(TransportDescriptor *desc, u_int32_t in_code, char *in_message, char *entityName);
 
 #define CYBERIMMUNE_SYSTEMS_EXAMPLE_TRAFFIC_LIGHT_KOS_MESSAGES_H
 

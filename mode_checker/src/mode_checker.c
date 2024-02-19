@@ -140,9 +140,7 @@ int main(int argc, const char *argv[]) {
         nk_arena_reset(&res_arena);
 
         /* Wait for request to lights gpio entity. */
-        if (nk_transport_recv(&mode_checker_transport.base,
-                              &req.base_,
-                              &req_arena) != NK_EOK) {
+        if (nk_transport_recv(&mode_checker_transport.base, &req.base_, &req_arena) != NK_EOK) {
             fprintf(stderr, "[ModeChecker  ] nk_transport_recv error\n");
         } else {
             fprintf(stderr, "[ModeChecker  ] GOT %08x\n", (rtl_uint32_t) req.modeChecker_mode.FMode.value);
@@ -153,7 +151,7 @@ int main(int argc, const char *argv[]) {
                 fprintf(stderr, "[ModeChecker  ] CHK %sFAIL%s\n", ANSI_COLOR_RED, ANSI_COLOR_RESET);
             }  else {
                 fprintf(stderr, "[ModeChecker  ] CHK %sOK%s\n", ANSI_COLOR_GREEN, ANSI_COLOR_RESET);
-                fprintf(stderr, "[ModeChecker  ] ==> %08x\n", (rtl_uint32_t) req_lights_gpio.value);
+                fprintf(stderr, "[ModeChecker  ] ==> LightsGPIO %08x\n", (rtl_uint32_t) req_lights_gpio.value);
                 if (traffic_light_IMode_FMode(&proxy_lights_gpio.base, &req_lights_gpio, NULL, &res_lights_gpio,
                                               NULL) == rcOk) {
                     fprintf(stderr, "[ModeChecker  ] <== %08x\n", (rtl_uint32_t) res_lights_gpio.result);

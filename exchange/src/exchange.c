@@ -66,8 +66,6 @@ static nk_err_t WriteImpl(__rtl_unused struct traffic_light_IDiagMessage    *sel
     return NK_EOK;
 }
 
-
-
 uint32_t request_data_from_http_server() {
     int sockfd, connfd;
     struct sockaddr_in servaddr, cli;
@@ -75,11 +73,11 @@ uint32_t request_data_from_http_server() {
     // socket create and verification
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd == -1) {
-        fprintf(stderr, "[Exchange     ] DEBUG: Socket creation failed...\n");
+        fprintf(stderr, "[Exchange     ] Socket creation failed.\n");
         return EXIT_FAILURE;
     }
     else
-        fprintf(stderr, "[Exchange     ] DEBUG: Socket successfully created..\n");
+        fprintf(stderr, "[Exchange     ] Socket successfully created.\n");
 
     bzero(&servaddr, sizeof(servaddr));
 
@@ -88,7 +86,7 @@ uint32_t request_data_from_http_server() {
     servaddr.sin_addr.s_addr = inet_addr(HOST_IP);
 
     if ( servaddr.sin_addr.s_addr == INADDR_NONE ) {
-        fprintf(stderr, "[Exchange     ] bad address!");
+        fprintf(stderr, "[Exchange     ] Bad address!");
     }
 
     servaddr.sin_port = htons(HOST_PORT);
@@ -102,9 +100,9 @@ uint32_t request_data_from_http_server() {
     }
 
     if (res != 0) {
-        fprintf(stderr, "[Exchange     ] DEBUG: Connection with the server failed (%d)\n", res);
+        fprintf(stderr, "[Exchange     ] Connection with the server failed (%d)\n", res);
     } else {
-        fprintf(stderr, "[Exchange     ] DEBUG: Connected to the server\n");
+        fprintf(stderr, "[Exchange     ] Connected to the server\n");
 
         char request_data[MSG_BUF_SIZE + 1];
         char response_data[MSG_BUF_SIZE + 1];
@@ -114,7 +112,7 @@ uint32_t request_data_from_http_server() {
         snprintf(request_data, MSG_CHUNK_BUF_SIZE,
                  "GET %s HTTP/1.1\r\nHost: %s:%d\r\n\r\n", HOST_PATH, HOST_IP, HOST_PORT);
 
-        //fprintf(stderr, "[Exchange     ] DEBUG: Request prepared:\n%s\n", request_data);
+        //fprintf(stderr, "[Exchange     ] Request prepared:\n%s\n", request_data);
         request_len = strlen(request_data);
         write(sockfd, request_data, request_len);
         write(sockfd, request_data, request_len);
@@ -154,16 +152,14 @@ int main(int argc, const char *argv[]) {
     struct sockaddr * sa;
     bool              is_network_available;
 
-    fprintf(stderr, "[Exchange     ] Hello, I'm about to start working\n");
-
     is_network_available = wait_for_network();
 
-    fprintf(stderr, "[Exchange     ] Network status: %s\n", is_network_available ? "OK" : "FAIL");
-    fprintf(stderr, "[Exchange     ] Opening socket...\n");
+    fprintf(stderr, "[Exchange     ] INF Network status: %s\n", is_network_available ? "OK" : "FAIL");
+    fprintf(stderr, "[Exchange     ] INF Opening socket...\n");
 
     socketfd = socket(AF_ROUTE, SOCK_RAW, 0);
     if (socketfd < 0) {
-        fprintf(stderr, "\n[Exchange     ] cannot create socket\n");
+        fprintf(stderr, "\n[Exchange     ] ERR Cannot create socket\n");
         return EXIT_FAILURE;
     }
 
@@ -171,34 +167,57 @@ int main(int argc, const char *argv[]) {
     conf.ifc_buf = (__caddr_t) iface_req;
 
     if (ioctl(socketfd, SIOCGIFCONF, &conf) < 0) {
-        fprintf(stderr, "[Exchange     ] ioctl call failed\n");
+        fprintf(stderr, "[Exchange     ] ERR ioctl call failed\n");
         close(socketfd);
         return EXIT_FAILURE;
     }
 
-    fprintf(stderr, "[Exchange     ] Discovering interfaces...\n");
+    fprintf(stderr, "[Exchange     ] INF Discovering interfaces...\n");
 
     for (size_t i = 0; i < conf.ifc_len / sizeof(iface_req[0]); i ++) {
         ifr = &conf.ifc_req[i];
         sa = (struct sockaddr *) &ifr->ifr_addr;
-
         if (sa->sa_family == AF_INET) {
             struct sockaddr_in *sin = (struct sockaddr_in*) &ifr->ifr_addr;
-
-            fprintf(stderr, "[Exchange     ] %s %s\n", ifr->ifr_name, inet_ntoa(sin->sin_addr));
+            fprintf(stderr, "[Exchange     ] INF %s %s\n", ifr->ifr_name, inet_ntoa(sin->sin_addr));
         }
     }
 
-    fprintf(stderr, "[Exchange     ] Network check up: OK\n");
+    fprintf(stderr, "[Exchange     ] INF Network check up OK\n");
 
     int config = request_data_from_http_server();
 
-    fprintf(stderr, "[Exchange     ] OK (%08x)\n", config);
+    // ControlCenter transport infrastructure
+    NkKosTransport cs_transport;
+    struct traffic_light_IMode_proxy cs_proxy;
+    Handle cs_handle = ServiceLocatorConnect("exchange_cs_connection");
+    assert(cs_handle != INVALID_HANDLE);
+    NkKosTransport_Init(&cs_transport, cs_handle, NK_NULL, 0);
+    //nk_iid_t cs_riid = ServiceLocatorGetRiid(cs_handle, "traffic_light.ControlSystem.write");
+    nk_iid_t cs_riid = ServiceLocatorGetRiid(cs_handle, "traffic_light.ControlSystem.mode");
+    assert(cs_riid != INVALID_RIID);
+    traffic_light_IMode_proxy_init(&cs_proxy, &cs_transport.base, cs_riid);
+    traffic_light_IMode_FMode_req cs_req;
+    traffic_light_IMode_FMode_res cs_res;
+
+    fprintf(stderr, "[Exchange     ] OK\n");
 
     for(;;) {
         // todo 1. request messages from the http-server
         request_data_from_http_server();
         // todo 2. receive (if any) status message from the ControlSystem
+        cs_req.value = 0x41414141;
+        uint32_t sendingResult = traffic_light_IMode_FMode(&cs_proxy.base, &cs_req, NULL, &cs_res, NULL);
+        if (sendingResult == rcOk) {
+            //traffic_light_ModeChecker_entity_dispatch(&entity, &req.base_, &req_arena, &res.base_, &res_arena);
+        } else {
+            fprintf(stderr, "[Exchange     ] ERR Failed to call ControlCenter.IMode.FMode() [%d]\n", sendingResult);
+/*
+            traffic_light_ModeChecker_entity_dispatch(&entity, &req.base_, &req_arena, &res.base_, &res_arena);
+            res.modeChecker_mode.FMode.result = traffic_light_IMode_WRONGCOMBO;
+*/
+        }
+
         // recv
     }
 
