@@ -131,7 +131,7 @@ int main(int argc, const char *argv[])
             traffic_light_IMode_FMode(&proxy.base, &req, NULL, &res, NULL) == rcOk;
             uint32_t ex_reply_result = nk_transport_reply(&ex_transport.base, &ex_res.base_, &ex_res_arena);
             if (ex_reply_result != NK_EOK) {
-                fprintf(stderr, "[ControlCenter] Exchange nk_transport_reply error (%d)\n", ex_reply_result);
+                fprintf(stderr, "[ControlSystem] Exchange nk_transport_reply error (%d)\n", ex_reply_result);
             }
         }
 
@@ -144,7 +144,7 @@ int main(int argc, const char *argv[])
             //traffic_light_IMode_FMode(&proxy.base, &req, NULL, &res, NULL) == rcOk;
             uint32_t hwd_reply_result = nk_transport_reply(&hwd_transport.base, &hwd_res.base_, &hwd_res_arena);
             if (hwd_reply_result != NK_EOK) {
-                fprintf(stderr, "[ControlCenter] HardwareDiagnostic nk_transport_reply error (%d)\n", hwd_reply_result);
+                fprintf(stderr, "[ControlSystem] HardwareDiagnostic nk_transport_reply error (%d)\n", hwd_reply_result);
             }
         }
 
