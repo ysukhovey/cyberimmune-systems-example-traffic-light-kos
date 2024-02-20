@@ -13,7 +13,7 @@ my $PRODUCTION = 'false';
 my @TRAFFIC_LIGHTS = (
     1094795585,
     1431655765
-    );
+);
 
 my @STATUS_LIST = ();
 

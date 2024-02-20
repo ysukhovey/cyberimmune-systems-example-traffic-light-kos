@@ -48,6 +48,42 @@ const struct json_attr_t json_combinations[] = {
         {NULL},
 };
 
+//---------------
+
+char *str_replace(char *orig, char *rep, char *with) {
+    char *result;
+    char *ins;
+    char *tmp;
+    int len_rep;
+    int len_with;
+    int len_front;
+    int count;
+    if (!orig || !rep)
+        return NULL;
+    len_rep = strlen(rep);
+    if (len_rep == 0)
+        return NULL;
+    if (!with)
+        with = "";
+    len_with = strlen(with);
+    ins = orig;
+    for (count = 0; tmp = strstr(ins, rep); ++count) {
+        ins = tmp + len_rep;
+    }
+    tmp = result = malloc(strlen(orig) + (len_with - len_rep) * count + 1);
+    if (!result)
+        return NULL;
+    while (count--) {
+        ins = strstr(orig, rep);
+        len_front = ins - orig;
+        tmp = strncpy(tmp, orig, len_front) + len_front;
+        tmp = strcpy(tmp, with) + len_with;
+        orig += len_front + len_rep; // move to next "end of rep"
+    }
+    strcpy(tmp, orig);
+    return result;
+}
+//---------------
 void init_http_server_connection() {
 
 }
@@ -113,14 +149,15 @@ uint32_t request_data_from_http_server() {
                 char *json_start = strstr(response_data, "\"{") + 1;
                 char *json_end = strstr(json_start, "}");
                 *(json_end + 1) = '\0';
-                fprintf(stderr, "[Exchange     ] Found JSON: %s\n", json_start);
+                char *js = str_replace(json_start, "\\\"", "\"");
+                fprintf(stderr, "[Exchange     ] Found JSON: %s\n", js);
                 c_count = 0;
-                int status = json_read_object(json_start, json_combinations, NULL);
+                int status = json_read_object(js, json_combinations, NULL);
                 for (int i = 0; i < c_count; i++)
                     fprintf(stderr, "[Exchange     ] Found combination [%08x]\n", combinations[i]);
                 if (status != 0)
                     fprintf(stderr, "[Exchange     ] ERR JSON Parsing error: %s\n", json_error_string(status));
-
+                if (js != NULL) free(js);
                 //fprintf(stderr, "[Exchange     ] response data: \n%s\n\n", response_data);
                 // todo here the sending to the ControlSystem should start
                 // todo extract JSON, parse it and send combination(s)
@@ -234,18 +271,20 @@ int main(int argc, const char *argv[]) {
     for(;;) {
         // todo 1. request messages from the http-server
         request_data_from_http_server();
+        for (int i = 0; i < c_count; i++) {
+            cs_req.value = combinations[i];
+            uint32_t sendingResult = traffic_light_IMode_FMode(&cs_proxy.base, &cs_req, NULL, &cs_res, NULL);
+            if (sendingResult == rcOk) {
+                //traffic_light_ModeChecker_entity_dispatch(&entity, &req.base_, &req_arena, &res.base_, &res_arena);
+            } else {
+                fprintf(stderr, "[Exchange     ] ERR Failed to call ControlCenter.IMode.FMode() [%d]\n", sendingResult);
+            }
+        }
         // todo 2. receive (if any) status message from the ControlSystem
-        cs_req.value = 0x41414141;
-        uint32_t sendingResult = traffic_light_IMode_FMode(&cs_proxy.base, &cs_req, NULL, &cs_res, NULL);
-        if (sendingResult == rcOk) {
-            //traffic_light_ModeChecker_entity_dispatch(&entity, &req.base_, &req_arena, &res.base_, &res_arena);
-        } else {
-            fprintf(stderr, "[Exchange     ] ERR Failed to call ControlCenter.IMode.FMode() [%d]\n", sendingResult);
 /*
             traffic_light_ModeChecker_entity_dispatch(&entity, &req.base_, &req_arena, &res.base_, &res_arena);
             res.modeChecker_mode.FMode.result = traffic_light_IMode_WRONGCOMBO;
 */
-        }
     }
 
     return EXIT_SUCCESS;
