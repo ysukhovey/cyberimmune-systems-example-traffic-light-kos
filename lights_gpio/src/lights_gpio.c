@@ -61,7 +61,7 @@ int main(void) {
     ServiceId iid;
 
     /* Get lights gpio IPC handle of "lights_gpio_connection". */
-    Handle handle = ServiceLocatorRegister("lights_gpio_connection", NULL, 0, &iid);
+    Handle handle = ServiceLocatorRegister("mc_gpio_connection", NULL, 0, &iid);
     assert(handle != INVALID_HANDLE);
 
     /* Initialize transport to control system. */

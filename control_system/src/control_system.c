@@ -98,7 +98,7 @@ int main(int argc, const char *argv[])
     //---------------
     NkKosTransport transport;
     struct traffic_light_IMode_proxy proxy;
-    Handle handle = ServiceLocatorConnect("mode_checker_connection");
+    Handle handle = ServiceLocatorConnect("cs_mc_connection");
     assert(handle != INVALID_HANDLE);
     NkKosTransport_Init(&transport, handle, NK_NULL, 0);
     nk_iid_t riid = ServiceLocatorGetRiid(handle, "modeChecker.mode");
@@ -124,15 +124,18 @@ int main(int argc, const char *argv[])
         nk_req_reset(&hwd_req);
         nk_arena_reset(&hwd_req_arena);
 
+
         // Wait for request from Exchange
         if (nk_transport_recv(&ex_transport.base, &ex_req.base_, &ex_req_arena) == NK_EOK) {
             req.value = ex_req.value;
             fprintf(stderr, "[ControlSystem] ==> ModeChecker %08x\n", (rtl_uint32_t) req.value);
             traffic_light_IMode_FMode(&proxy.base, &req, NULL, &res, NULL) == rcOk;
+/*
             uint32_t ex_reply_result = nk_transport_reply(&ex_transport.base, &ex_res.base_, &ex_res_arena);
             if (ex_reply_result != NK_EOK) {
                 fprintf(stderr, "[ControlSystem] Exchange nk_transport_reply error (%d)\n", ex_reply_result);
             }
+*/
         }
 
         // Wait for request from HardwareDiagnostic
@@ -142,13 +145,15 @@ int main(int argc, const char *argv[])
             //req.value = hwd_req.value;
             fprintf(stderr, "[ControlSystem] GOT Code from HardwareDiagnostic %08x\n", (rtl_uint32_t) hwd_req.value);
             //traffic_light_IMode_FMode(&proxy.base, &req, NULL, &res, NULL) == rcOk;
+/*
             uint32_t hwd_reply_result = nk_transport_reply(&hwd_transport.base, &hwd_res.base_, &hwd_res_arena);
             if (hwd_reply_result != NK_EOK) {
                 fprintf(stderr, "[ControlSystem] HardwareDiagnostic nk_transport_reply error (%d)\n", hwd_reply_result);
             }
+*/
         }
-
         traffic_light_ModeChecker_entity_dispatch(&cs_entity, &req.base_, &req_arena, &res.base_, &res_arena);
+
     }
 
     return EXIT_SUCCESS;
