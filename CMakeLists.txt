@@ -55,8 +55,10 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} \
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 nk_build_idl_files (traffic_light_idl_files NK_MODULE "traffic_light" IDL "resources/IMode.idl")
+nk_build_idl_files (traffic_light_idl_files NK_MODULE "traffic_light" IDL "resources/ICode.idl")
 nk_build_idl_files (traffic_light_idl_files NK_MODULE "traffic_light" IDL "resources/IDiagMessage.idl")
 nk_build_cdl_files (traffic_light_cdl_files IDL_TARGET traffic_light_idl_files NK_MODULE "traffic_light" CDL "resources/CMode.cdl")
+nk_build_cdl_files (traffic_light_cdl_files IDL_TARGET traffic_light_idl_files NK_MODULE "traffic_light" CDL "resources/CCode.cdl")
 nk_build_cdl_files (traffic_light_cdl_files IDL_TARGET traffic_light_idl_files NK_MODULE "traffic_light" CDL "resources/CDiagMessage.cdl")
 nk_build_edl_files (traffic_light_lights_gpio_edl_files CDL_TARGET traffic_light_cdl_files NK_MODULE "traffic_light" EDL "resources/LightsGPIO.edl")
 nk_build_edl_files (traffic_light_control_system_edl_files CDL_TARGET traffic_light_cdl_files  NK_MODULE "traffic_light" EDL "resources/ControlSystem.edl")
@@ -64,6 +66,7 @@ nk_build_edl_files (traffic_light_mode_checker_edl_files CDL_TARGET traffic_ligh
 nk_build_edl_files (traffic_light_hardware_diagnostic_edl_files CDL_TARGET traffic_light_cdl_files NK_MODULE "traffic_light" EDL "resources/HardwareDiagnostic.edl")
 nk_build_edl_files (traffic_light_exchange_edl_files CDL_TARGET traffic_light_cdl_files NK_MODULE "traffic_light" EDL "resources/Exchange.edl")
 
+add_subdirectory (microjson)
 add_subdirectory (control_system)
 add_subdirectory (mode_checker)
 add_subdirectory (hardware_diagnostic)

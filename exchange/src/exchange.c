@@ -8,14 +8,17 @@
 #include <net/if.h>
 #include <arpa/inet.h>
 #include <kos_net.h>
+#include <string.h>
 #include <strings.h>
 
 #include <coresrv/nk/transport-kos.h>
 #include <coresrv/sl/sl_api.h>
 
 #include <traffic_light/Exchange.edl.h>
+#include <traffic_light/ICode.idl.h>
 #include <traffic_light/IMode.idl.h>
-#include <traffic_light/IDiagMessage.idl.h>
+
+#include "../../microjson/src/mjson.h"
 
 #include <assert.h>
 
@@ -31,6 +34,20 @@
 
 #define EXAMPLE_VALUE_TO_SEND 777
 
+#define ARR_LENGTH 128
+
+static uint32_t combinations[ARR_LENGTH];
+static int c_count;
+
+const struct json_attr_t json_combinations[] = {
+        {"combinations", t_array,
+         .addr.array.element_type = t_uinteger,
+         .addr.array.arr.uintegers = combinations,
+         .addr.array.maxlen = ARR_LENGTH,
+         .addr.array.count = &c_count},
+        {NULL},
+};
+
 void init_http_server_connection() {
 
 }
@@ -38,32 +55,6 @@ void init_http_server_connection() {
 uint32_t send_message_to_control_system(traffic_light_IDiagMessage_DiagnosticMessage message) {
     sprintf(stderr, "[Exchange     ] code: %08x, message: %p\n", message.code, message.message);
     return 0;
-}
-
-static nk_err_t WriteImpl(__rtl_unused struct traffic_light_IDiagMessage    *self,
-                          const traffic_light_IDiagMessage_Write_req        *req,
-                          const struct nk_arena                             *reqArena,
-                          __rtl_unused traffic_light_IDiagMessage_Write_res *res,
-                          __rtl_unused struct nk_arena                      *resArena) {
-    nk_uint32_t msgCount = 0;
-
-    nk_ptr_t *message = nk_arena_get(nk_ptr_t, reqArena, &(req->inMessage.message), &msgCount);
-    if (message == RTL_NULL) {
-        fprintf(stderr, "[Exchange     ] Error: can`t get messages from arena!\n");
-        return NK_EBADMSG;
-    }
-
-    nk_char_t *msg = RTL_NULL;
-    nk_uint32_t msgLen = 0;
-    msg = nk_arena_get(nk_char_t, reqArena, &message[0], &msgLen);
-    if (msg == RTL_NULL) {
-        fprintf(stderr, "[Exchange     ] Error: can`t get message from arena!\n");
-        return NK_EBADMSG;
-    }
-
-    fprintf(stderr, "[Exchange     ] GOT %08d: %s\n", req->inMessage.code, msg);
-
-    return NK_EOK;
 }
 
 uint32_t request_data_from_http_server() {
@@ -115,18 +106,28 @@ uint32_t request_data_from_http_server() {
         //fprintf(stderr, "[Exchange     ] Request prepared:\n%s\n", request_data);
         request_len = strlen(request_data);
         write(sockfd, request_data, request_len);
-        write(sockfd, request_data, request_len);
-
         if (write(sockfd, request_data, request_len) >= 0) {
-            fprintf(stderr, "[Exchange     ] Request sent, reading response..\n");
+            fprintf(stderr, "[Exchange     ] Request sent, reading response.\n");
             while ((n = read(sockfd, response_data, MSG_BUF_SIZE)) > 0) {
                 response_data[n] = '\0';
+                char *json_start = strstr(response_data, "\"{") + 1;
+                char *json_end = strstr(json_start, "}");
+                *(json_end + 1) = '\0';
+                fprintf(stderr, "[Exchange     ] Found JSON: %s\n", json_start);
+                c_count = 0;
+                int status = json_read_object(json_start, json_combinations, NULL);
+                for (int i = 0; i < c_count; i++)
+                    fprintf(stderr, "[Exchange     ] Found combination [%08x]\n", combinations[i]);
+                if (status != 0)
+                    fprintf(stderr, "[Exchange     ] ERR JSON Parsing error: %s\n", json_error_string(status));
+
                 //fprintf(stderr, "[Exchange     ] response data: \n%s\n\n", response_data);
                 // todo here the sending to the ControlSystem should start
                 // todo extract JSON, parse it and send combination(s)
                 //send_message_to_control_system(message);
 
             }
+
         }
     }
     close(sockfd);
@@ -134,14 +135,27 @@ uint32_t request_data_from_http_server() {
     return EXIT_SUCCESS;
 }
 
-static struct traffic_light_IDiagMessage *CreateIDiagMessageImpl(void) {
-    static const struct traffic_light_IDiagMessage_ops Ops = {
-            .Write = WriteImpl
+typedef struct ICodeImpl {
+    struct traffic_light_ICode base;
+} ICodeImpl;
+
+static nk_err_t FCode_impl(struct traffic_light_ICode                   *self,
+                           const struct traffic_light_ICode_FCode_req   *req,
+                           const struct nk_arena                        *req_arena,
+                           traffic_light_ICode_FCode_res                *res,
+                           struct nk_arena                              *res_arena) {
+    res->result = req->value;
+    return NK_EOK;
+}
+
+static struct traffic_light_ICode *CreateICodeImpl() {
+    static const struct traffic_light_ICode_ops ops = {
+            .FCode = FCode_impl
     };
-    static traffic_light_IDiagMessage obj = {
-            .ops = &Ops
+    static struct ICodeImpl impl = {
+            .base = {&ops}
     };
-    return &obj;
+    return &impl.base;
 }
 
 int main(int argc, const char *argv[]) {
@@ -187,6 +201,20 @@ int main(int argc, const char *argv[]) {
 
     int config = request_data_from_http_server();
 
+    //
+    NkKosTransport cse_transport;
+    ServiceId cse_iid;
+    Handle cse_handle = ServiceLocatorRegister("cs_exchange_connection", NULL, 0, &cse_iid);
+    assert(cse_handle != INVALID_HANDLE);
+    NkKosTransport_Init(&cse_transport, cse_handle, NK_NULL, 0);
+    traffic_light_ICode_FCode_req cse_req;
+    char cse_req_buffer[traffic_light_ICode_FCode_req_arena_size];
+    struct nk_arena cse_req_arena = NK_ARENA_INITIALIZER(cse_req_buffer, cse_req_buffer + sizeof(cse_req_buffer));
+    traffic_light_ICode_FCode_res cse_res;
+    char cse_res_buffer[traffic_light_ICode_FCode_res_arena_size];
+    struct nk_arena cse_res_arena = NK_ARENA_INITIALIZER(cse_res_buffer, cse_res_buffer + sizeof(cse_res_buffer));
+    fprintf(stderr, "[Exchange     ] ControlSystem service transport register OK\n");
+
     // ControlCenter transport infrastructure
     NkKosTransport cs_transport;
     struct traffic_light_IMode_proxy cs_proxy;
@@ -199,6 +227,7 @@ int main(int argc, const char *argv[]) {
     traffic_light_IMode_proxy_init(&cs_proxy, &cs_transport.base, cs_riid);
     traffic_light_IMode_FMode_req cs_req;
     traffic_light_IMode_FMode_res cs_res;
+    fprintf(stderr, "[Exchange     ] ControlSystem client transport location OK\n");
 
     fprintf(stderr, "[Exchange     ] OK\n");
 
@@ -217,8 +246,6 @@ int main(int argc, const char *argv[]) {
             res.modeChecker_mode.FMode.result = traffic_light_IMode_WRONGCOMBO;
 */
         }
-
-        // recv
     }
 
     return EXIT_SUCCESS;

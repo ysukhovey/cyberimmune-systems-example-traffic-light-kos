@@ -11,7 +11,7 @@
 #include <traffic_light/IDiagMessage.idl.h>
 
 
-char* WriteCommonImpl(__rtl_unused struct traffic_light_IDiagMessage           *self,
+char* WriteCommonImpl(__rtl_unused struct traffic_light_IDiagMessage              *self,
                          const traffic_light_IDiagMessage_Write_req               *req,
                          const struct nk_arena                                    *reqArena,
                          __rtl_unused traffic_light_IDiagMessage_Write_res        *res,

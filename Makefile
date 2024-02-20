@@ -1,6 +1,6 @@
 d-build:
 	docker build ./ -t kos:1.1.1.40u20.04
-	docker build ./http_server -t perl-mojolicious:0.1
+	docker build ./http_server -t perl-mojolicious
 
 network:
 	docker network rm -f kosnet

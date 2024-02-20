@@ -1,0 +1,5 @@
+component traffic_light.CCode
+
+endpoints {
+    mode : traffic_light.ICode
+}

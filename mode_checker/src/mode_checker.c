@@ -132,8 +132,7 @@ int main(int argc, const char *argv[]) {
     fprintf(stderr, "[ModeChecker  ] OK\n");
 
     /* Dispatch loop implementation. */
-    do
-    {
+    do {
         /* Flush request/response buffers. */
         nk_req_reset(&req);
         nk_arena_reset(&req_arena);

@@ -7,43 +7,58 @@
 #include <coresrv/sl/sl_api.h>
 
 /* Description of the lights gpio interface used by the `ControlSystem` entity. */
+#include <traffic_light/ICode.idl.h>
 #include <traffic_light/IMode.idl.h>
 #include <assert.h>
 #include <traffic_light/ControlSystem.edl.h>
 #include <traffic_light/ModeChecker.edl.h>
 #include <traffic_light/LightsGPIO.edl.h>
 
-/* Type of interface implementing object. */
 typedef struct IModeImpl {
-    struct traffic_light_IMode base;     /* Base interface of object */
-    rtl_uint32_t step;                   /* Extra parameters */
+    struct traffic_light_IMode base;
+    rtl_uint32_t step;
 } IModeImpl;
 
-/* Mode method implementation. */
-static nk_err_t FMode_impl(struct traffic_light_IMode *self,
-                           const struct traffic_light_IMode_FMode_req *req,
-                           const struct nk_arena *req_arena,
-                           traffic_light_IMode_FMode_res *res,
-                           struct nk_arena *res_arena)
-{
+static nk_err_t FMode_impl(struct traffic_light_IMode                   *self,
+                           const struct traffic_light_IMode_FMode_req   *req,
+                           const struct nk_arena                        *req_arena,
+                           traffic_light_IMode_FMode_res                *res,
+                           struct nk_arena                              *res_arena) {
     res->result = req->value;
     return NK_EOK;
 }
 
-static struct traffic_light_IMode *CreateIModeImpl(rtl_uint32_t step)
-{
-    /* Table of implementations of IMode interface methods. */
+static struct traffic_light_IMode *CreateIModeImpl(rtl_uint32_t step) {
     static const struct traffic_light_IMode_ops ops = {
             .FMode = FMode_impl
     };
-
-    /* Interface implementing object. */
     static struct IModeImpl impl = {
             .base = {&ops}
     };
-
     impl.step = step;
+    return &impl.base;
+}
 
+typedef struct ICodeImpl {
+    struct traffic_light_ICode base;
+} ICodeImpl;
+
+static nk_err_t FCode_impl(struct traffic_light_ICode                   *self,
+                           const struct traffic_light_ICode_FCode_req   *req,
+                           const struct nk_arena                        *req_arena,
+                           traffic_light_ICode_FCode_res                *res,
+                           struct nk_arena                              *res_arena) {
+    res->result = req->value;
+    return NK_EOK;
+}
+
+static struct traffic_light_ICode *CreateICodeImpl() {
+    static const struct traffic_light_ICode_ops ops = {
+            .FCode = FCode_impl
+    };
+    static struct ICodeImpl impl = {
+            .base = {&ops}
+    };
     return &impl.base;
 }
 
@@ -78,11 +93,11 @@ int main(int argc, const char *argv[])
     Handle hwd_handle = ServiceLocatorRegister("diag_cs_connection", NULL, 0, &hwd_iid);
     assert(hwd_handle != INVALID_HANDLE);
     NkKosTransport_Init(&hwd_transport, hwd_handle, NK_NULL, 0);
-    traffic_light_IMode_FMode_req hwd_req;
-    char hwd_req_buffer[traffic_light_IMode_FMode_req_arena_size];
+    traffic_light_ICode_FCode_req hwd_req;
+    char hwd_req_buffer[traffic_light_ICode_FCode_req_arena_size];
     struct nk_arena hwd_req_arena = NK_ARENA_INITIALIZER(hwd_req_buffer, hwd_req_buffer + sizeof(hwd_req_buffer));
-    traffic_light_IMode_FMode_res hwd_res;
-    char hwd_res_buffer[traffic_light_IMode_FMode_res_arena_size];
+    traffic_light_ICode_FCode_res hwd_res;
+    char hwd_res_buffer[traffic_light_ICode_FCode_res_arena_size];
     struct nk_arena hwd_res_arena = NK_ARENA_INITIALIZER(hwd_res_buffer, hwd_res_buffer + sizeof(hwd_res_buffer));
     fprintf(stderr, "[ControlSystem] HardwareDiagnostic transport OK\n");
 
@@ -102,7 +117,7 @@ int main(int argc, const char *argv[])
     fprintf(stderr, "[ControlSystem] Exchange transport OK\n");
 
     traffic_light_ControlSystem_entity cs_entity;
-    traffic_light_ControlSystem_entity_init(&cs_entity, CreateIModeImpl(0), CreateIModeImpl(0));
+    traffic_light_ControlSystem_entity_init(&cs_entity, CreateICodeImpl(0), CreateIModeImpl(0));
 
     //---------------
     Handle handle = ServiceLocatorConnect("mode_checker_connection");
@@ -147,7 +162,7 @@ int main(int argc, const char *argv[])
         }
     }
 
-    /* Test loop. */
+/*    *//* Test loop. *//*
     for (int i = 0; i < modesNum; i++) {
         req.value = tl_modes[i];
         fprintf(stderr, "[ControlSystem] --- Request %04d STARTED  ------------------------------\n", i);
@@ -159,7 +174,7 @@ int main(int argc, const char *argv[])
         else
             fprintf(stderr, "[ControlSystem] Failed to call traffic_light.Mode.Mode()\n");
         fprintf(stderr, "[ControlSystem] --- Request %04d FINISHED -----------------------------/\n", i);
-    }
+    }*/
 
     return EXIT_SUCCESS;
 }

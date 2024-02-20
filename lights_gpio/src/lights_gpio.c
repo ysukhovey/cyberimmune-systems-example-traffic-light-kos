@@ -170,10 +170,9 @@ int main(void) {
         send_diagnostic_message(&desc, (u_int32_t)rand(), buffer, "LightsGPIO");
 
         /* Send response. */
-        if (nk_transport_reply(&transport.base,
-                               &res.base_,
-                               &res_arena) != NK_EOK) {
-            fprintf(stderr, "[LightsGPIO   ] nk_transport_reply error\n");
+        uint32_t resReply = nk_transport_reply(&transport.base, &res.base_, &res_arena);
+        if (resReply != NK_EOK) {
+            fprintf(stderr, "[LightsGPIO   ] nk_transport_reply error [%d]\n", resReply);
         }
     } while (true);
 

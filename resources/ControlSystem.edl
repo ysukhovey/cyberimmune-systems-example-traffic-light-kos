@@ -1,6 +1,6 @@
 entity traffic_light.ControlSystem
 
 endpoints {
-    code  : traffic_light.IMode
+    code  : traffic_light.ICode
     mode  : traffic_light.IMode
 }

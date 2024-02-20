@@ -1,0 +1,5 @@
+package traffic_light.ICode
+
+interface {
+    FCode(in UInt32 value, out UInt32 result);
+}
