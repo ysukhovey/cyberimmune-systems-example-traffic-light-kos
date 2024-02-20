@@ -65,24 +65,24 @@ request {
         grant()
     }
 
-    match src=traffic_light.ControlSystem, dst=traffic_light.Exchange {
+    match src = traffic_light.ControlSystem, dst = traffic_light.Exchange {
         grant()
     }
 
-    match src=traffic_light.ModeChecker, dst=traffic_light.LightsGPIO endpoint=lightsGpio.mode method=FMode {
+    match src = traffic_light.ModeChecker, dst = traffic_light.LightsGPIO endpoint = lightsGpio.mode method = FMode {
         assert(message.value != 0xffffffff)
         grant()
     }
 
-    match src=traffic_light.LightsGPIO, dst=traffic_light.HardwareDiagnostic {
+    match src = traffic_light.LightsGPIO, dst = traffic_light.HardwareDiagnostic {
         grant()
     }
 
-    match src=traffic_light.HardwareDiagnostic, dst=traffic_light.ControlSystem {
+    match src = traffic_light.HardwareDiagnostic, dst = traffic_light.ControlSystem {
         grant()
     }
 
-    match src=traffic_light.Exchange, dst=traffic_light.ControlSystem {
+    match src = traffic_light.Exchange, dst = traffic_light.ControlSystem {
         grant()
     }
 

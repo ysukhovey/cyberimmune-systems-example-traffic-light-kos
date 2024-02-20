@@ -65,27 +65,6 @@ static struct traffic_light_ICode *CreateICodeImpl() {
 /* Control system entity entry point. */
 int main(int argc, const char *argv[])
 {
-    NkKosTransport transport;
-    struct traffic_light_IMode_proxy proxy;
-
-    static const nk_uint32_t tl_modes[] = {
-            traffic_light_IMode_R1,
-            traffic_light_IMode_R1 + traffic_light_IMode_AR1,
-            traffic_light_IMode_R1 + traffic_light_IMode_Y1,
-            traffic_light_IMode_R1 + traffic_light_IMode_Y1 + traffic_light_IMode_AR1,
-            traffic_light_IMode_R1 + traffic_light_IMode_B1,
-            traffic_light_IMode_G1,
-            traffic_light_IMode_G1 + traffic_light_IMode_AL1 + traffic_light_IMode_AR1,
-            traffic_light_IMode_G1 + traffic_light_IMode_AR1,
-            traffic_light_IMode_B1,
-            traffic_light_IMode_AR1 + traffic_light_IMode_B1 + traffic_light_IMode_AR2 + traffic_light_IMode_B2 + traffic_light_IMode_R3 + traffic_light_IMode_R4,
-            traffic_light_IMode_R1 + traffic_light_IMode_G2,
-            traffic_light_IMode_Y1 + traffic_light_IMode_B1 + traffic_light_IMode_Y2 + traffic_light_IMode_B2 + traffic_light_IMode_Y3 + traffic_light_IMode_B3 + traffic_light_IMode_Y4 + traffic_light_IMode_B4
-
-    };
-
-    size_t modesNum = sizeof(tl_modes) / sizeof(tl_modes[0]);
-
     //--------------
     // Transport infrastructure for HardwareDiagnostic messages
     NkKosTransport hwd_transport;
@@ -116,10 +95,9 @@ int main(int argc, const char *argv[])
 
     fprintf(stderr, "[ControlSystem] Exchange transport OK\n");
 
-    traffic_light_ControlSystem_entity cs_entity;
-    traffic_light_ControlSystem_entity_init(&cs_entity, CreateICodeImpl(0), CreateIModeImpl(0));
-
     //---------------
+    NkKosTransport transport;
+    struct traffic_light_IMode_proxy proxy;
     Handle handle = ServiceLocatorConnect("mode_checker_connection");
     assert(handle != INVALID_HANDLE);
     NkKosTransport_Init(&transport, handle, NK_NULL, 0);
@@ -134,6 +112,9 @@ int main(int argc, const char *argv[])
     struct nk_arena res_arena = NK_ARENA_INITIALIZER(res_buffer, res_buffer + sizeof(res_buffer));
     fprintf(stderr, "[ControlSystem] ModeChecker transport OK\n");
 
+    traffic_light_ControlSystem_entity cs_entity;
+    traffic_light_ControlSystem_entity_init(&cs_entity, CreateICodeImpl(), CreateIModeImpl(0));
+
     fprintf(stderr, "[ControlSystem] OK\n");
 
     for(;;) {
@@ -143,38 +124,32 @@ int main(int argc, const char *argv[])
         nk_req_reset(&hwd_req);
         nk_arena_reset(&hwd_req_arena);
 
-        traffic_light_ModeChecker_entity_dispatch(&cs_entity, &req.base_, &req_arena, &res.base_, &res_arena);
-
-        /* Wait for request from Exchange */
+        // Wait for request from Exchange
         if (nk_transport_recv(&ex_transport.base, &ex_req.base_, &ex_req_arena) == NK_EOK) {
             req.value = ex_req.value;
             fprintf(stderr, "[ControlSystem] ==> ModeChecker %08x\n", (rtl_uint32_t) req.value);
             traffic_light_IMode_FMode(&proxy.base, &req, NULL, &res, NULL) == rcOk;
+            uint32_t ex_reply_result = nk_transport_reply(&ex_transport.base, &ex_res.base_, &ex_res_arena);
+            if (ex_reply_result != NK_EOK) {
+                fprintf(stderr, "[ControlCenter] Exchange nk_transport_reply error (%d)\n", ex_reply_result);
+            }
         }
 
-        /* Wait for request from HardwareDiagnostic */
+        // Wait for request from HardwareDiagnostic
         if (nk_transport_recv(&hwd_transport.base, &hwd_req.base_, &hwd_req_arena) == NK_EOK) {
             // todo Send data to the Exchange
             //traffic_light_HardwareDiagnostic_entity_dispatch(&cs_entity, &hwd_req.base_, &hwd_req_arena, &hwd_res.base_, RTL_NULL);
             //req.value = hwd_req.value;
             fprintf(stderr, "[ControlSystem] GOT Code from HardwareDiagnostic %08x\n", (rtl_uint32_t) hwd_req.value);
             //traffic_light_IMode_FMode(&proxy.base, &req, NULL, &res, NULL) == rcOk;
+            uint32_t hwd_reply_result = nk_transport_reply(&hwd_transport.base, &hwd_res.base_, &hwd_res_arena);
+            if (hwd_reply_result != NK_EOK) {
+                fprintf(stderr, "[ControlCenter] HardwareDiagnostic nk_transport_reply error (%d)\n", hwd_reply_result);
+            }
         }
-    }
 
-/*    *//* Test loop. *//*
-    for (int i = 0; i < modesNum; i++) {
-        req.value = tl_modes[i];
-        fprintf(stderr, "[ControlSystem] --- Request %04d STARTED  ------------------------------\n", i);
-        fprintf(stderr, "[ControlSystem] ==> %08x\n", (rtl_uint32_t) req.value);
-        if (traffic_light_IMode_FMode(&proxy.base, &req, NULL, &res, NULL) == rcOk) {
-            fprintf(stderr, "[ControlSystem] <== %08x\n", (rtl_uint32_t) res.result);
-            req.value = res.result;
-        }
-        else
-            fprintf(stderr, "[ControlSystem] Failed to call traffic_light.Mode.Mode()\n");
-        fprintf(stderr, "[ControlSystem] --- Request %04d FINISHED -----------------------------/\n", i);
-    }*/
+        traffic_light_ModeChecker_entity_dispatch(&cs_entity, &req.base_, &req_arena, &res.base_, &res_arena);
+    }
 
     return EXIT_SUCCESS;
 }
