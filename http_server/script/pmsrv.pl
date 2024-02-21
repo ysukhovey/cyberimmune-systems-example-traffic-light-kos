@@ -10,10 +10,10 @@ use Time::Moment;
 # Set to 'true' to run the production version
 my $PRODUCTION = 'false';
 
-my @TRAFFIC_LIGHTS = (
-    1094795585,
+my @TRAFFIC_LIGHTS = map {$_ + 0} qw /
+    1094795585
     1431655765
-);
+/;
 
 my @STATUS_LIST = ();
 
