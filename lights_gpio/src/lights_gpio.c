@@ -131,21 +131,21 @@ int main(void) {
             );
         }
 
-        char buffer[traffic_light_IDiagMessage_Write_req_arena_size];
-        rtl_memset(buffer, 0, traffic_light_IDiagMessage_Write_req_arena_size);
-        rtl_snprintf(buffer, traffic_light_IDiagMessage_Write_req_arena_size - 1,
+        char buffer[traffic_light_IDiagMessage_arena_size];
+        rtl_memset(buffer, 0, traffic_light_IDiagMessage_arena_size);
+        rtl_snprintf(buffer, traffic_light_IDiagMessage_arena_size - 1,
                      "{traffic_lights: ['%s', '%s', '%s', '%s'], mode: %08x}",
                      (char *)&bs1, (char *)&bs2, (char *)&bs3, (char *)&bs4, (rtl_uint32_t) req.lightsGpio_mode.FMode.value);
 
         nk_arena_reset(&hd_reqArena);
         int logMessageLength = 0;
-        char logMessage[traffic_light_IDiagMessage_Write_req_inMessage_message_size];
-        rtl_memset(logMessage, 0, traffic_light_IDiagMessage_Write_req_inMessage_message_size);
+        char logMessage[traffic_light_IDiagMessage_arena_size];
+        rtl_memset(logMessage, 0, traffic_light_IDiagMessage_arena_size);
         nk_ptr_t *message = nk_arena_alloc(nk_ptr_t, &hd_reqArena, &(hd_req.inMessage.message), 1);
         if (message == RTL_NULL) {
             fprintf(stderr, "[LightsGPIO   ] ERR Can`t allocate memory in the request arena!\n");
         } else {
-            logMessageLength = rtl_snprintf(logMessage, traffic_light_IDiagMessage_Write_req_inMessage_message_size, "%s", buffer);
+            logMessageLength = rtl_snprintf(logMessage, traffic_light_IDiagMessage_arena_size, "%s", buffer);
 
             if (logMessageLength < 0) {
                 fprintf(stderr, "[LightsGPIO   ] ERR Length of message is a negative number!\n");

@@ -20,6 +20,10 @@ Handle cs_handle;
 nk_iid_t cs_riid;
 traffic_light_ICode_FCode_req cs_req;
 traffic_light_ICode_FCode_res cs_res;
+char cs_req_buffer[traffic_light_ICode_FCode_req_arena_size];
+struct nk_arena cs_req_arena = NK_ARENA_INITIALIZER(cs_req_buffer, cs_req_buffer + sizeof(cs_req_buffer));
+char cs_res_buffer[traffic_light_ICode_FCode_req_arena_size];
+struct nk_arena cs_res_arena = NK_ARENA_INITIALIZER(cs_res_buffer, cs_res_buffer + sizeof(cs_res_buffer));
 
 nk_err_t WriteImpl(__rtl_unused struct traffic_light_IDiagMessage          *self,
                          const traffic_light_IDiagMessage_Write_req        *req,
@@ -46,7 +50,7 @@ nk_err_t WriteImpl(__rtl_unused struct traffic_light_IDiagMessage          *self
 
     cs_req.value = req->inMessage.code;
     fprintf(stderr,"[HardwareDiag ] ==> ControlSystem [code: %08d]\n", cs_req.value);
-    uint32_t sendingResult = traffic_light_ICode_FCode(&cs_proxy.base, &cs_req, NULL, &cs_res, NULL);
+    uint32_t sendingResult = traffic_light_ICode_FCode(&cs_proxy.base, &cs_req, &cs_req_arena, &cs_res, &cs_res_arena);
     fprintf(stderr,"[HardwareDiag ] ==> ControlSystem Sent [code: %08d]\n", cs_req.value);
     if (sendingResult == rcOk) {
         //traffic_light_HardwareDiagnostic_entity_dispatch(&entity, &req.base_, &req_arena, &res.base_, &res_arena);
@@ -74,9 +78,9 @@ int main(int argc, const char *argv[]) {
     assert(hwd_handle != INVALID_HANDLE);
     NkKosTransport_Init(&hwd_transport, hwd_handle, NK_NULL, 0);
     traffic_light_HardwareDiagnostic_entity_req hwd_req;
-    char hwd_req_buffer[traffic_light_HardwareDiagnostic_entity_req_arena_size];
+    char hwd_req_buffer[traffic_light_IDiagMessage_arena_size];
     struct nk_arena hwd_req_arena = NK_ARENA_INITIALIZER(hwd_req_buffer, hwd_req_buffer + sizeof(hwd_req_buffer));
-    char hwd_res_buffer[traffic_light_HardwareDiagnostic_entity_res_arena_size];
+    char hwd_res_buffer[traffic_light_IDiagMessage_arena_size];
     struct nk_arena hwd_res_arena = NK_ARENA_INITIALIZER(hwd_res_buffer, hwd_res_buffer + sizeof(hwd_res_buffer));
     traffic_light_HardwareDiagnostic_entity_res hwd_res;
     traffic_light_HardwareDiagnostic_entity hwd_entity;
@@ -90,6 +94,7 @@ int main(int argc, const char *argv[]) {
     cs_riid = ServiceLocatorGetRiid(cs_handle, "traffic_light.ControlSystem.code");
     assert(cs_riid != INVALID_RIID);
     traffic_light_ICode_proxy_init(&cs_proxy, &cs_transport.base, cs_riid);
+
     fprintf(stderr, "[HardwareDiag ] ControlSystem client transport OK\n");
 
     fprintf(stderr, "[HardwareDiag ] OK\n");
