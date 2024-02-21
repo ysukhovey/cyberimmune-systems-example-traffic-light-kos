@@ -58,21 +58,21 @@ static struct traffic_light_IMode *CreateIModeImpl(rtl_uint32_t step) {
 }
 
 int main(int argc, const char *argv[]) {
-    NkKosTransport mode_checker_transport;
-    ServiceId iid;
-    Handle handle_mode_checker = ServiceLocatorRegister("cs_mc_connection", NULL, 0, &iid);
-    assert(handle_mode_checker != INVALID_HANDLE);
-    NkKosTransport_Init(&mode_checker_transport, handle_mode_checker, NK_NULL, 0);
-    traffic_light_ModeChecker_entity_req req;
-    char req_buffer[traffic_light_ModeChecker_entity_req_arena_size];
-    struct nk_arena req_arena = NK_ARENA_INITIALIZER(req_buffer, req_buffer + sizeof(req_buffer));
-    traffic_light_ModeChecker_entity_res res;
-    char res_buffer[traffic_light_ModeChecker_entity_res_arena_size];
-    struct nk_arena res_arena = NK_ARENA_INITIALIZER(res_buffer, res_buffer + sizeof(res_buffer));
-    traffic_light_CMode_component component;
-    traffic_light_CMode_component_init(&component, CreateIModeImpl(traffic_light_IMode_WRONGCOMBO));
-    traffic_light_ModeChecker_entity entity;
-    traffic_light_ModeChecker_entity_init(&entity, &component);
+    NkKosTransport mc_transport;
+    ServiceId mc_iid;
+    Handle mc_handle = ServiceLocatorRegister("cs_mc_connection", NULL, 0, &mc_iid);
+    assert(mc_handle != INVALID_HANDLE);
+    NkKosTransport_Init(&mc_transport, mc_handle, NK_NULL, 0);
+    traffic_light_ModeChecker_entity_req mc_req;
+    char mc_req_buffer[traffic_light_ModeChecker_entity_req_arena_size];
+    struct nk_arena mc_req_arena = NK_ARENA_INITIALIZER(mc_req_buffer, mc_req_buffer + sizeof(mc_req_buffer));
+    traffic_light_ModeChecker_entity_res mc_res;
+    char mc_res_buffer[traffic_light_ModeChecker_entity_res_arena_size];
+    struct nk_arena mc_res_arena = NK_ARENA_INITIALIZER(mc_res_buffer, mc_res_buffer + sizeof(mc_res_buffer));
+    traffic_light_CMode_component mc_component;
+    traffic_light_CMode_component_init(&mc_component, CreateIModeImpl(traffic_light_IMode_WRONGCOMBO));
+    traffic_light_ModeChecker_entity mc_entity;
+    traffic_light_ModeChecker_entity_init(&mc_entity, &mc_component);
     fprintf(stderr, "[ModeChecker  ] ModeChecker service transport OK\n");
 
     NkKosTransport transport_lights_gpio;
@@ -91,18 +91,18 @@ int main(int argc, const char *argv[]) {
 
     do {
         /* Flush request/response buffers. */
-        nk_req_reset(&req);
-        nk_req_reset(&res);
-        nk_arena_reset(&req_arena);
-        nk_arena_reset(&res_arena);
+        nk_req_reset(&mc_req);
+        nk_req_reset(&mc_res);
+        nk_arena_reset(&mc_req_arena);
+        nk_arena_reset(&mc_res_arena);
 
         /* Wait for request to lights gpio entity. */
-        uint32_t mc_rec_result = nk_transport_recv(&mode_checker_transport.base, &req.base_, &req_arena);
+        uint32_t mc_rec_result = nk_transport_recv(&mc_transport.base, &mc_req.base_, &mc_req_arena);
         if (mc_rec_result == NK_EOK) {
-            fprintf(stderr, "[ModeChecker  ] GOT %08x\n", (rtl_uint32_t) req.modeChecker_mode.FMode.value);
-            req_lights_gpio.value = check_combination(req.modeChecker_mode.FMode.value);
+            fprintf(stderr, "[ModeChecker  ] GOT %08x\n", (rtl_uint32_t) mc_req.modeChecker_mode.FMode.value);
+            req_lights_gpio.value = check_combination(mc_req.modeChecker_mode.FMode.value);
             if (traffic_light_IMode_WRONGCOMBO == req_lights_gpio.value) {
-                res.modeChecker_mode.FMode.result = traffic_light_IMode_WRONGCOMBO;
+                mc_res.modeChecker_mode.FMode.result = traffic_light_IMode_WRONGCOMBO;
                 fprintf(stderr, "[ModeChecker  ] CHK %sFAIL%s\n", ANSI_COLOR_RED, ANSI_COLOR_RESET);
             }  else {
                 fprintf(stderr, "[ModeChecker  ] CHK %sOK%s\n", ANSI_COLOR_GREEN, ANSI_COLOR_RESET);
@@ -110,19 +110,19 @@ int main(int argc, const char *argv[]) {
                 uint32_t tl_call_result = traffic_light_IMode_FMode(&proxy_lights_gpio.base, &req_lights_gpio, NULL, &res_lights_gpio, NULL);
                 if (tl_call_result == rcOk) {
                     fprintf(stderr, "[ModeChecker  ] <== %08x\n", (rtl_uint32_t) res_lights_gpio.result);
-                    res.modeChecker_mode.FMode.result = res_lights_gpio.result;
+                    mc_res.modeChecker_mode.FMode.result = res_lights_gpio.result;
                 } else {
                     fprintf(stderr, "[ModeChecker  ] Failed to call traffic_light.Mode.Mode. (%d)\n", tl_call_result);
-                    res.modeChecker_mode.FMode.result = traffic_light_IMode_WRONGCOMBO;
+                    mc_res.modeChecker_mode.FMode.result = traffic_light_IMode_WRONGCOMBO;
                 }
             }
             /* Send response. */
-            uint32_t reply_result = nk_transport_reply(&mode_checker_transport.base, &res.base_, &res_arena);
+            uint32_t reply_result = nk_transport_reply(&mc_transport.base, &mc_res.base_, &mc_res_arena);
             if (reply_result != NK_EOK) {
                 fprintf(stderr, "[ModeChecker  ] ERR nk_transport_reply() error (%d)\n", reply_result);
             }
         }
-        uint32_t dispatch_result = traffic_light_ModeChecker_entity_dispatch(&entity, &req.base_, &req_arena, &res.base_, &res_arena);
+        uint32_t dispatch_result = traffic_light_ModeChecker_entity_dispatch(&mc_entity, &mc_req.base_, &mc_req_arena, &mc_res.base_, &mc_res_arena);
         if (dispatch_result != NK_EOK) {
             fprintf(stderr, "[ModeChecker  ] ERR dispatch() error (%d)\n", dispatch_result);
         }

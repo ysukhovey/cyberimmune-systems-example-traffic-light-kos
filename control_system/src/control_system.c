@@ -8,7 +8,9 @@
 
 /* Description of the lights gpio interface used by the `ControlSystem` entity. */
 #include <traffic_light/ICode.idl.h>
+#include <traffic_light/CCode.cdl.h>
 #include <traffic_light/IMode.idl.h>
+#include <traffic_light/CMode.cdl.h>
 #include <assert.h>
 #include <traffic_light/ControlSystem.edl.h>
 #include <traffic_light/ModeChecker.edl.h>
@@ -78,6 +80,9 @@ int main(int argc, const char *argv[])
     traffic_light_ICode_FCode_res hwd_res;
     char hwd_res_buffer[traffic_light_ICode_FCode_res_arena_size];
     struct nk_arena hwd_res_arena = NK_ARENA_INITIALIZER(hwd_res_buffer, hwd_res_buffer + sizeof(hwd_res_buffer));
+    traffic_light_CCode_component hwd_component;
+    traffic_light_CCode_component_init(&hwd_component, CreateICodeImpl());
+
     fprintf(stderr, "[ControlSystem] HardwareDiagnostic transport OK\n");
 
     // Transport infrastructure for Exchange messages
@@ -92,6 +97,8 @@ int main(int argc, const char *argv[])
     traffic_light_IMode_FMode_res ex_res;
     char ex_res_buffer[traffic_light_IMode_FMode_res_arena_size];
     struct nk_arena ex_res_arena = NK_ARENA_INITIALIZER(ex_res_buffer, ex_res_buffer + sizeof(ex_res_buffer));
+    traffic_light_CMode_component ex_component;
+    traffic_light_CMode_component_init(&ex_component, CreateIModeImpl(0));
 
     fprintf(stderr, "[ControlSystem] Exchange transport OK\n");
 
@@ -113,7 +120,7 @@ int main(int argc, const char *argv[])
     fprintf(stderr, "[ControlSystem] ModeChecker transport OK\n");
 
     traffic_light_ControlSystem_entity cs_entity;
-    traffic_light_ControlSystem_entity_init(&cs_entity, CreateICodeImpl(), CreateIModeImpl(0));
+    traffic_light_ControlSystem_entity_init(&cs_entity, &hwd_component, &ex_component);
 
     fprintf(stderr, "[ControlSystem] OK\n");
 

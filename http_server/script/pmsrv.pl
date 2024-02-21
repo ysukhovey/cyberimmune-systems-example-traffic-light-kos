@@ -11,8 +11,8 @@ use Time::Moment;
 my $PRODUCTION = 'false';
 
 my @TRAFFIC_LIGHTS = map {$_ + 0} qw /
-    1431655765
     1094795585
+    1431655765
 /;
 
 my @STATUS_LIST = ();
