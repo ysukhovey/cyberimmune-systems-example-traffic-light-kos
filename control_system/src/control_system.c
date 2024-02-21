@@ -96,20 +96,20 @@ int main(int argc, const char *argv[])
     fprintf(stderr, "[ControlSystem] Exchange transport OK\n");
 
     //---------------
-    NkKosTransport transport;
-    struct traffic_light_IMode_proxy proxy;
-    Handle handle = ServiceLocatorConnect("cs_mc_connection");
-    assert(handle != INVALID_HANDLE);
-    NkKosTransport_Init(&transport, handle, NK_NULL, 0);
-    nk_iid_t riid = ServiceLocatorGetRiid(handle, "modeChecker.mode");
-    assert(riid != INVALID_RIID);
-    traffic_light_IMode_proxy_init(&proxy, &transport.base, riid);
-    traffic_light_IMode_FMode_req req;
-    traffic_light_IMode_FMode_res res;
-    char req_buffer[traffic_light_IMode_FMode_req_arena_size];
-    struct nk_arena req_arena = NK_ARENA_INITIALIZER(req_buffer, req_buffer + sizeof(req_buffer));
-    char res_buffer[traffic_light_IMode_FMode_res_arena_size];
-    struct nk_arena res_arena = NK_ARENA_INITIALIZER(res_buffer, res_buffer + sizeof(res_buffer));
+    NkKosTransport mc_transport;
+    struct traffic_light_IMode_proxy mc_proxy;
+    Handle mc_handle = ServiceLocatorConnect("cs_mc_connection");
+    assert(mc_handle != INVALID_HANDLE);
+    NkKosTransport_Init(&mc_transport, mc_handle, NK_NULL, 0);
+    nk_iid_t mc_riid = ServiceLocatorGetRiid(mc_handle, "modeChecker.mode");
+    assert(mc_riid != INVALID_RIID);
+    traffic_light_IMode_proxy_init(&mc_proxy, &mc_transport.base, mc_riid);
+    traffic_light_IMode_FMode_req mc_req;
+    traffic_light_IMode_FMode_res mc_res;
+    char mc_req_buffer[traffic_light_IMode_FMode_req_arena_size];
+    struct nk_arena mc_req_arena = NK_ARENA_INITIALIZER(mc_req_buffer, mc_req_buffer + sizeof(mc_req_buffer));
+    char mc_res_buffer[traffic_light_IMode_FMode_res_arena_size];
+    struct nk_arena mc_res_arena = NK_ARENA_INITIALIZER(mc_res_buffer, mc_res_buffer + sizeof(mc_res_buffer));
     fprintf(stderr, "[ControlSystem] ModeChecker transport OK\n");
 
     traffic_light_ControlSystem_entity cs_entity;
@@ -125,9 +125,9 @@ int main(int argc, const char *argv[])
 
         // Wait for request from Exchange
         if (nk_transport_recv(&ex_transport.base, &ex_req.base_, &ex_req_arena) == NK_EOK) {
-            req.value = ex_req.value;
-            fprintf(stderr, "[ControlSystem] ==> ModeChecker %08x\n", (rtl_uint32_t) req.value);
-            uint32_t mc_call_result = traffic_light_IMode_FMode(&proxy.base, &req, NULL, &res, NULL);
+            mc_req.value = ex_req.value;
+            fprintf(stderr, "[ControlSystem] ==> ModeChecker %08x\n", (rtl_uint32_t) mc_req.value);
+            uint32_t mc_call_result = traffic_light_IMode_FMode(&mc_proxy.base, &mc_req, &mc_req_arena, &mc_res, &mc_res_arena);
             if (mc_call_result  == rcOk) {
                 uint32_t ex_reply_result = nk_transport_reply(&ex_transport.base, &ex_res.base_, &ex_res_arena);
                 if (ex_reply_result != NK_EOK) {
@@ -150,10 +150,9 @@ int main(int argc, const char *argv[])
             }
 */
         }
-        uint32_t dispatch_result = traffic_light_ControlSystem_entity_dispatch(&cs_entity, &req.base_, &req_arena, &res.base_, &res_arena);
-        if (dispatch_result != NK_EOK) {
-            fprintf(stderr, "[ControlSystem] dispatch() error (%d)\n", dispatch_result);
-        }
+        traffic_light_ControlSystem_entity_dispatch(&cs_entity, &mc_req.base_, &mc_req_arena, &mc_res.base_, &mc_res_arena);
+        traffic_light_ControlSystem_entity_dispatch(&cs_entity, &ex_req.base_, &ex_req_arena, &ex_res.base_, &ex_res_arena);
+        traffic_light_ControlSystem_entity_dispatch(&cs_entity, &hwd_req.base_, &hwd_req_arena, &hwd_res.base_, &hwd_res_arena);
     }
 
     return EXIT_SUCCESS;

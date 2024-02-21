@@ -61,7 +61,7 @@ request {
 
     match src = Einit                                     { grant() }
 
-    match src = traffic_light.ControlSystem, dst = traffic_light.ModeChecker endpoint=modeChecker.mode method=FMode {
+    match src = traffic_light.ControlSystem, dst = traffic_light.ModeChecker {
         grant()
     }
 
