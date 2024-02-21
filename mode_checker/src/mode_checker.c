@@ -159,17 +159,16 @@ int main(int argc, const char *argv[]) {
                     res.modeChecker_mode.FMode.result = traffic_light_IMode_WRONGCOMBO;
                 }
             }
+            /* Send response. */
+            uint32_t reply_result = nk_transport_reply(&mode_checker_transport.base, &res.base_, &res_arena);
+            if (reply_result != NK_EOK) {
+                fprintf(stderr, "[ModeChecker  ] ERR nk_transport_reply() error (%d)\n", reply_result);
+            }
+            uint32_t dispatch_result = traffic_light_ModeChecker_entity_dispatch(&entity, &req.base_, &req_arena, &res.base_, &res_arena);
+            if (dispatch_result != NK_EOK) {
+                fprintf(stderr, "[ModeChecker  ] ERR dispatch() error (%d)\n", dispatch_result);
+            }
         }
-
-        traffic_light_ModeChecker_entity_dispatch(&entity, &req.base_, &req_arena, &res.base_, &res_arena);
-        /* Send response. */
-
-        if (nk_transport_reply(&mode_checker_transport.base,
-                               &res.base_,
-                               &res_arena) != NK_EOK) {
-            fprintf(stderr, "[ModeChecker  ] nk_transport_reply error\n");
-        }
-
     }
     while (true);
 

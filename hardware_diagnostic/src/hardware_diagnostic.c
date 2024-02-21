@@ -22,12 +22,13 @@ nk_err_t WriteImpl(__rtl_unused struct traffic_light_IDiagMessage          *self
         uint32_t sendingResult = traffic_light_ICode_FCode(&cs_proxy.base, &cs_req, NULL, &cs_res, NULL);
         fprintf(stderr,"[HardwareDiag ] ==> ControlSystem Sent [code: %08d]\n", cs_req.value);
         if (sendingResult == rcOk) {
-            //traffic_light_ModeChecker_entity_dispatch(&entity, &req.base_, &req_arena, &res.base_, &res_arena);
+            //traffic_light_HardwareDiagnostic_entity_dispatch(&entity, &req.base_, &req_arena, &res.base_, &res_arena);
         } else {
             fprintf(stderr,"[HardwareDiag ] ERR Failed to call ControlCenter.IMode.FMode(CODE)[%d]\n", sendingResult);
         }
         return NK_EOK;
     } else {
+        fprintf(stderr,"[HardwareDiag ] ERR The received message is empty\n");
         return NK_EBADMSG;
     }
 }
@@ -71,13 +72,13 @@ int main(int argc, const char *argv[]) {
         nk_arena_reset(&hwd_req_arena);
 
         uint32_t hwdRecv = nk_transport_recv(&hwd_transport.base, &hwd_req.base_, &hwd_req_arena);
-        if (hwdRecv != NK_EOK) {
+        if (hwdRecv == NK_EOK) {
+            uint32_t hwdRepl = nk_transport_reply(&hwd_transport.base, &hwd_res.base_, RTL_NULL);
+            if (hwdRepl != NK_EOK) {
+                fprintf(stderr, "[HardwareDiag ] nk_transport_reply error [%d]\n", hwdRepl);
+            }
+        } else {
             fprintf(stderr, "[HardwareDiag ] nk_transport_recv error [%d]\n", hwdRecv);
-        }
-
-        uint32_t hwdRepl = nk_transport_reply(&hwd_transport.base, &hwd_res.base_, RTL_NULL);
-        if (hwdRepl != NK_EOK) {
-            fprintf(stderr, "[HardwareDiag ] nk_transport_reply error [%d]\n", hwdRepl);
         }
 
         traffic_light_HardwareDiagnostic_entity_dispatch(&hwd_entity, &hwd_req.base_, &hwd_req_arena, &hwd_res.base_, RTL_NULL);

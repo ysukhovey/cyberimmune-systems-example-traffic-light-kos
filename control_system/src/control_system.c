@@ -130,12 +130,10 @@ int main(int argc, const char *argv[])
             req.value = ex_req.value;
             fprintf(stderr, "[ControlSystem] ==> ModeChecker %08x\n", (rtl_uint32_t) req.value);
             traffic_light_IMode_FMode(&proxy.base, &req, NULL, &res, NULL) == rcOk;
-/*
             uint32_t ex_reply_result = nk_transport_reply(&ex_transport.base, &ex_res.base_, &ex_res_arena);
             if (ex_reply_result != NK_EOK) {
                 fprintf(stderr, "[ControlSystem] Exchange nk_transport_reply error (%d)\n", ex_reply_result);
             }
-*/
         }
 
         // Wait for request from HardwareDiagnostic
@@ -152,8 +150,7 @@ int main(int argc, const char *argv[])
             }
 */
         }
-        traffic_light_ModeChecker_entity_dispatch(&cs_entity, &req.base_, &req_arena, &res.base_, &res_arena);
-
+        traffic_light_ControlSystem_entity_dispatch(&cs_entity, &req.base_, &req_arena, &res.base_, &res_arena);
     }
 
     return EXIT_SUCCESS;

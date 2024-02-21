@@ -154,8 +154,6 @@ int main(void) {
                     colorize_traffic_lights(bs3, ctl3),
                     colorize_traffic_lights(bs4, ctl4)
             );
-
-            traffic_light_LightsGPIO_entity_dispatch(&entity, &req.base_, &req_arena, &res.base_, &res_arena);
         }
 
         char reqBuffer[traffic_light_IDiagMessage_Write_req_arena_size];
@@ -174,6 +172,9 @@ int main(void) {
         if (resReply != NK_EOK) {
             fprintf(stderr, "[LightsGPIO   ] nk_transport_reply error [%d]\n", resReply);
         }
+
+        traffic_light_LightsGPIO_entity_dispatch(&entity, &req.base_, &req_arena, &res.base_, &res_arena);
+
     } while (true);
 
     return EXIT_SUCCESS;
