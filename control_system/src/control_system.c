@@ -125,10 +125,19 @@ int main(int argc, const char *argv[])
     fprintf(stderr, "[ControlSystem] OK\n");
 
     for(;;) {
+        // Clean requests/responses along with their arenas
         nk_req_reset(&ex_req);
+        nk_req_reset(&ex_res);
         nk_arena_reset(&ex_req_arena);
+        nk_arena_reset(&ex_res_arena);
         nk_req_reset(&hwd_req);
+        nk_req_reset(&hwd_res);
         nk_arena_reset(&hwd_req_arena);
+        nk_arena_reset(&hwd_res_arena);
+        nk_req_reset(&mc_req);
+        nk_req_reset(&mc_res);
+        nk_arena_reset(&mc_req_arena);
+        nk_arena_reset(&mc_res_arena);
 
         // Wait for request from Exchange
         if (nk_transport_recv(&ex_transport.base, &ex_req.base_, &ex_req_arena) == NK_EOK) {
