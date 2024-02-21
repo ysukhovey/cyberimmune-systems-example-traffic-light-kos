@@ -116,18 +116,19 @@ int main(int argc, const char *argv[]) {
                     mc_res.modeChecker_mode.FMode.result = traffic_light_IMode_WRONGCOMBO;
                 }
             }
-            /* Send response. */
-            uint32_t reply_result = nk_transport_reply(&mc_transport.base, &mc_res.base_, &mc_res_arena);
-            if (reply_result != NK_EOK) {
-                fprintf(stderr, "[ModeChecker  ] ERR nk_transport_reply() error (%d)\n", reply_result);
-            }
         }
+        // Send response
+        uint32_t reply_result = nk_transport_reply(&mc_transport.base, &mc_res.base_, &mc_res_arena);
+        if (reply_result != NK_EOK) {
+            fprintf(stderr, "[ModeChecker  ] ERR nk_transport_reply() error (%d)\n", reply_result);
+        }
+        // Dispatch requests
         uint32_t dispatch_result = traffic_light_ModeChecker_entity_dispatch(&mc_entity, &mc_req.base_, &mc_req_arena, &mc_res.base_, &mc_res_arena);
         if (dispatch_result != NK_EOK) {
             fprintf(stderr, "[ModeChecker  ] ERR dispatch() error (%d)\n", dispatch_result);
         }
-    }
-    while (true);
+
+    } while (true);
 
     return EXIT_SUCCESS;
 }

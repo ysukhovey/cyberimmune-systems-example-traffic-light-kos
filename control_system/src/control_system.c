@@ -145,20 +145,18 @@ int main(int argc, const char *argv[])
             fprintf(stderr, "[ControlSystem] ==> ModeChecker %08x\n", (rtl_uint32_t) mc_req.value);
             uint32_t mc_call_result = traffic_light_IMode_FMode(&mc_proxy.base, &mc_req, &mc_req_arena, &mc_res, &mc_res_arena);
             if (mc_call_result  == rcOk) {
-                uint32_t ex_reply_result = nk_transport_reply(&ex_transport.base, &ex_res.base_, &ex_res_arena);
-                if (ex_reply_result != NK_EOK) {
-                    fprintf(stderr, "[ControlSystem] Exchange nk_transport_reply error (%d)\n", ex_reply_result);
-                }
+                traffic_light_ControlSystem_entity_dispatch(&cs_entity, &ex_req.base_, &ex_req_arena, &ex_res.base_, &ex_res_arena);
             }
-            traffic_light_ControlSystem_entity_dispatch(&cs_entity, &mc_req.base_, &mc_req_arena, &mc_res.base_, &mc_res_arena);
         }
-        traffic_light_ControlSystem_entity_dispatch(&cs_entity, &ex_req.base_, &ex_req_arena, &ex_res.base_, &ex_res_arena);
+        uint32_t ex_reply_result = nk_transport_reply(&ex_transport.base, &ex_res.base_, &ex_res_arena);
+        if (ex_reply_result != NK_EOK) {
+            fprintf(stderr, "[ControlSystem] Exchange nk_transport_reply error (%d)\n", ex_reply_result);
+        }
 
         // Wait for request from HardwareDiagnostic
         if (nk_transport_recv(&hwd_transport.base, &hwd_req.base_, &hwd_req_arena) == NK_EOK) {
             // todo Send data to the Exchange
-            //traffic_light_HardwareDiagnostic_entity_dispatch(&cs_entity, &hwd_req.base_, &hwd_req_arena, &hwd_res.base_, RTL_NULL);
-            //req.value = hwd_req.value;
+            traffic_light_ControlSystem_entity_dispatch(&cs_entity, &hwd_req.base_, &hwd_req_arena, &hwd_res.base_, &hwd_res_arena);
             fprintf(stderr, "[ControlSystem] GOT Code from HardwareDiagnostic %08x\n", (rtl_uint32_t) hwd_req.value);
             //traffic_light_IMode_FMode(&proxy.base, &req, NULL, &res, NULL) == rcOk;
 /*
@@ -168,7 +166,6 @@ int main(int argc, const char *argv[])
             }
 */
         }
-        traffic_light_ControlSystem_entity_dispatch(&cs_entity, &hwd_req.base_, &hwd_req_arena, &hwd_res.base_, &hwd_res_arena);
 
     }
 

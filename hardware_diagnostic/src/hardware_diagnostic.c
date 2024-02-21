@@ -105,15 +105,15 @@ int main(int argc, const char *argv[]) {
 
         uint32_t hwdRecv = nk_transport_recv(&hwd_transport.base, &hwd_req.base_, &hwd_req_arena);
         if (hwdRecv == NK_EOK) {
-            uint32_t hwdRepl = nk_transport_reply(&hwd_transport.base, &hwd_res.base_, &hwd_res_arena);
-            if (hwdRepl != NK_EOK) {
-                fprintf(stderr, "[HardwareDiag ] nk_transport_reply error [%d]\n", hwdRepl);
-            }
+            traffic_light_HardwareDiagnostic_entity_dispatch(&hwd_entity, &hwd_req.base_, &hwd_req_arena, &hwd_res.base_, RTL_NULL);
         } else {
             fprintf(stderr, "[HardwareDiag ] nk_transport_recv error [%d]\n", hwdRecv);
         }
+        uint32_t hwdRepl = nk_transport_reply(&hwd_transport.base, &hwd_res.base_, &hwd_res_arena);
+        if (hwdRepl != NK_EOK) {
+            fprintf(stderr, "[HardwareDiag ] nk_transport_reply error [%d]\n", hwdRepl);
+        }
 
-        traffic_light_HardwareDiagnostic_entity_dispatch(&hwd_entity, &hwd_req.base_, &hwd_req_arena, &hwd_res.base_, RTL_NULL);
     } while (true);
 
     return EXIT_SUCCESS;
