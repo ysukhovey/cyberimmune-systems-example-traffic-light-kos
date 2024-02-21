@@ -32,106 +32,63 @@ static rtl_uint32_t check_combination(rtl_uint32_t combination) {
     return traffic_light_IMode_WRONGCOMBO;
 }
 
-/* Type of interface implementing object. */
 typedef struct IModeImpl {
-    struct traffic_light_IMode base;     /* Base interface of object */
-    rtl_uint32_t step;                   /* Extra parameters */
+    struct traffic_light_IMode base;
+    rtl_uint32_t step;
 } IModeImpl;
 
-/* Mode method implementation. */
 static nk_err_t FMode_impl(struct traffic_light_IMode *self,
                            const struct traffic_light_IMode_FMode_req *req,
                            const struct nk_arena *req_arena,
                            traffic_light_IMode_FMode_res *res,
-                           struct nk_arena *res_arena)
-{
+                           struct nk_arena *res_arena) {
     res->result = req->value;
     return NK_EOK;
 }
 
-/**
- * IMode object constructor.
- * step is the number by which the input value is increased.
- */
-static struct traffic_light_IMode *CreateIModeImpl(rtl_uint32_t step)
-{
-    /* Table of implementations of IMode interface methods. */
+static struct traffic_light_IMode *CreateIModeImpl(rtl_uint32_t step) {
     static const struct traffic_light_IMode_ops ops = {
             .FMode = FMode_impl
     };
-
-    /* Interface implementing object. */
     static struct IModeImpl impl = {
             .base = {&ops}
     };
-
     impl.step = step;
-
     return &impl.base;
 }
 
 int main(int argc, const char *argv[]) {
     NkKosTransport mode_checker_transport;
     ServiceId iid;
-
-    /* Get mode checker IPC handle of "mode_checker_connection". */
     Handle handle_mode_checker = ServiceLocatorRegister("cs_mc_connection", NULL, 0, &iid);
     assert(handle_mode_checker != INVALID_HANDLE);
-
-    /* Initialize transport to control system. */
     NkKosTransport_Init(&mode_checker_transport, handle_mode_checker, NK_NULL, 0);
-
-    /**
-        * Prepare the structures of the request to the lights gpio entity: constant
-        * part and arena. Because none of the methods of the lights gpio entity has
-        * sequence type arguments, only constant parts of the
-        * request and response are used. Arenas are effectively unused. However,
-        * valid arenas of the request and response must be passed to
-        * lights gpio transport methods (nk_transport_recv, nk_transport_reply) and
-        * to the lights gpio method.
-        */
     traffic_light_ModeChecker_entity_req req;
     char req_buffer[traffic_light_ModeChecker_entity_req_arena_size];
-    struct nk_arena req_arena = NK_ARENA_INITIALIZER(req_buffer,
-                                                     req_buffer + sizeof(req_buffer));
-
-    /* Prepare response structures: constant part and arena. */
+    struct nk_arena req_arena = NK_ARENA_INITIALIZER(req_buffer, req_buffer + sizeof(req_buffer));
     traffic_light_ModeChecker_entity_res res;
     char res_buffer[traffic_light_ModeChecker_entity_res_arena_size];
-    struct nk_arena res_arena = NK_ARENA_INITIALIZER(res_buffer,
-                                                     res_buffer + sizeof(res_buffer));
-
-    /**
-     * Initialize mode component dispatcher. 3 is the value of the step,
-     * which is the number by which the input value is increased.
-     */
+    struct nk_arena res_arena = NK_ARENA_INITIALIZER(res_buffer, res_buffer + sizeof(res_buffer));
     traffic_light_CMode_component component;
     traffic_light_CMode_component_init(&component, CreateIModeImpl(traffic_light_IMode_WRONGCOMBO));
-
-    /* Initialize lights gpio entity dispatcher. */
     traffic_light_ModeChecker_entity entity;
     traffic_light_ModeChecker_entity_init(&entity, &component);
+    fprintf(stderr, "[ModeChecker  ] ModeChecker service transport OK\n");
 
     NkKosTransport transport_lights_gpio;
     struct traffic_light_IMode_proxy proxy_lights_gpio;
-
     Handle handle_lights_gpio = ServiceLocatorConnect("mc_gpio_connection");
     assert(handle_lights_gpio != INVALID_HANDLE);
-
     NkKosTransport_Init(&transport_lights_gpio, handle_lights_gpio, NK_NULL, 0);
-
     nk_iid_t riid = ServiceLocatorGetRiid(handle_lights_gpio, "lightsGpio.mode");
     assert(riid != INVALID_RIID);
-
     traffic_light_IMode_proxy_init(&proxy_lights_gpio, &transport_lights_gpio.base, riid);
-
     traffic_light_IMode_FMode_req req_lights_gpio;
     traffic_light_IMode_FMode_res res_lights_gpio;
-
+    fprintf(stderr, "[ModeChecker  ] LightsGPIO client transportOK\n");
 
     fprintf(stderr, "[ModeChecker  ] OK\n");
 
-    /* Dispatch loop implementation. */
     do {
         /* Flush request/response buffers. */
         nk_req_reset(&req);
@@ -153,7 +110,7 @@ int main(int argc, const char *argv[]) {
                 uint32_t tl_call_result = traffic_light_IMode_FMode(&proxy_lights_gpio.base, &req_lights_gpio, NULL, &res_lights_gpio, NULL);
                 if (tl_call_result == rcOk) {
                     fprintf(stderr, "[ModeChecker  ] <== %08x\n", (rtl_uint32_t) res_lights_gpio.result);
-                    req_lights_gpio.value = res_lights_gpio.result;
+                    res.modeChecker_mode.FMode.result = res_lights_gpio.result;
                 } else {
                     fprintf(stderr, "[ModeChecker  ] Failed to call traffic_light.Mode.Mode. (%d)\n", tl_call_result);
                     res.modeChecker_mode.FMode.result = traffic_light_IMode_WRONGCOMBO;
@@ -164,10 +121,10 @@ int main(int argc, const char *argv[]) {
             if (reply_result != NK_EOK) {
                 fprintf(stderr, "[ModeChecker  ] ERR nk_transport_reply() error (%d)\n", reply_result);
             }
-            uint32_t dispatch_result = traffic_light_ModeChecker_entity_dispatch(&entity, &req.base_, &req_arena, &res.base_, &res_arena);
-            if (dispatch_result != NK_EOK) {
-                fprintf(stderr, "[ModeChecker  ] ERR dispatch() error (%d)\n", dispatch_result);
-            }
+        }
+        uint32_t dispatch_result = traffic_light_ModeChecker_entity_dispatch(&entity, &req.base_, &req_arena, &res.base_, &res_arena);
+        if (dispatch_result != NK_EOK) {
+            fprintf(stderr, "[ModeChecker  ] ERR dispatch() error (%d)\n", dispatch_result);
         }
     }
     while (true);
