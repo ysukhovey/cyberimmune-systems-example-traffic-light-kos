@@ -14,8 +14,9 @@
 /* EDL description of the LightsGPIO entity. */
 #include <traffic_light/LightsGPIO.edl.h>
 #include <traffic_light/IDiagMessage.idl.h>
+#include <traffic_light/LightsGPIO.edl.h>
+#include <traffic_light/IDiagMessage.idl.h>
 
-#include "messages.h"
 #include "presentation.h"
 #include <assert.h>
 
@@ -128,22 +129,49 @@ int main(void) {
 
         char reqBuffer[traffic_light_IDiagMessage_Write_req_arena_size];
         struct nk_arena hd_reqArena = NK_ARENA_INITIALIZER(reqBuffer, reqBuffer + sizeof(reqBuffer));
-        TransportDescriptor desc = DESCR_INIT(&hd_proxy, &hd_req, &hd_res, &hd_reqArena, RTL_NULL);
 
         char buffer[traffic_light_IDiagMessage_Write_req_arena_size];
         rtl_memset(buffer, 0, traffic_light_IDiagMessage_Write_req_arena_size);
         rtl_snprintf(buffer, traffic_light_IDiagMessage_Write_req_arena_size - 1,
                      "{traffic_lights: ['%s', '%s', '%s', '%s'], mode: %08x}",
                      (char *)&bs1, (char *)&bs2, (char *)&bs3, (char *)&bs4, (rtl_uint32_t) req.lightsGpio_mode.FMode.value);
-        send_diagnostic_message(&desc, (u_int32_t)rand(), buffer, "LightsGPIO");
 
-        uint32_t resReply = nk_transport_reply(&transport.base, &res.base_, &res_arena);
-        if (resReply != NK_EOK) {
-            fprintf(stderr, "[LightsGPIO   ] nk_transport_reply error [%d]\n", resReply);
+        nk_arena_reset(&hd_reqArena);
+        int logMessageLength = 0;
+        char logMessage[traffic_light_IDiagMessage_Write_req_inMessage_message_size];
+        rtl_memset(logMessage, 0, traffic_light_IDiagMessage_Write_req_inMessage_message_size);
+        nk_ptr_t *message = nk_arena_alloc(nk_ptr_t, &hd_reqArena, &(hd_req.inMessage.message), 1);
+        if (message == RTL_NULL) {
+            fprintf(stderr, "[LightsGPIO   ] ERR Can`t allocate memory in arena!\n");
+        } else {
+            logMessageLength = rtl_snprintf(logMessage, traffic_light_IDiagMessage_Write_req_inMessage_message_size, "%s", buffer);
+
+            if (logMessageLength < 0) {
+                fprintf(stderr, "[LightsGPIO   ] ERR Length of message is negative number!\n");
+            } else {
+                nk_char_t *str = nk_arena_alloc(nk_char_t, &hd_reqArena, &(message[0]), (nk_size_t)(logMessageLength + 1));
+                if (str == RTL_NULL) {
+                    fprintf(stderr, "[LightsGPIO   ] ERR Can`t allocate memory in arena!\n");
+                } else {
+                    rtl_strncpy(str, logMessage, (rtl_size_t)(logMessageLength + 1));
+                    // todo REAL CODE!
+                    hd_req.inMessage.code = (uint32_t) rand();
+
+                    fprintf(stderr, "[LightsGPIO   ] ==> HardwareDiagnostic [code: %08d, message: %s]\n", hd_req.inMessage.code, buffer);
+
+                    uint32_t send_result = traffic_light_IDiagMessage_Write(&hd_proxy.base, &hd_req, &hd_reqArena, &hd_res, NULL);
+                    if (send_result != NK_EOK) {
+                        fprintf(stderr, "[LightsGPIO   ] ERR Can`t send message to HardwareDiagnostic entity!\n");
+                    } else {
+                        uint32_t resReply = nk_transport_reply(&transport.base, &res.base_, &res_arena);
+                        if (resReply != NK_EOK) {
+                            fprintf(stderr, "[LightsGPIO   ] nk_transport_reply error [%d]\n", resReply);
+                        }
+                    }
+                }
+            }
         }
-
         traffic_light_LightsGPIO_entity_dispatch(&entity, &req.base_, &req_arena, &res.base_, &res_arena);
-
     } while (true);
 
     return EXIT_SUCCESS;
