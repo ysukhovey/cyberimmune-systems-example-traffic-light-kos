@@ -41,17 +41,16 @@ nk_err_t WriteImpl(__rtl_unused struct traffic_light_IDiagMessage          *self
         fprintf(stderr,"[HardwareDiag ] GOT [code: %08d, message: %s]\n", req->inMessage.code, msg);
     }
 
-/*
-        cs_req.value = req->inMessage.code;
-        fprintf(stderr,"[HardwareDiag ] ==> ControlSystem [code: %08d]\n", cs_req.value);
-        uint32_t sendingResult = traffic_light_ICode_FCode(&cs_proxy.base, &cs_req, NULL, &cs_res, NULL);
-        fprintf(stderr,"[HardwareDiag ] ==> ControlSystem Sent [code: %08d]\n", cs_req.value);
-        if (sendingResult == rcOk) {
-            //traffic_light_HardwareDiagnostic_entity_dispatch(&entity, &req.base_, &req_arena, &res.base_, &res_arena);
-        } else {
-            fprintf(stderr,"[HardwareDiag ] ERR Failed to call ControlCenter.IMode.FMode(CODE)[%d]\n", sendingResult);
-        }
-*/
+    cs_req.value = req->inMessage.code;
+    fprintf(stderr,"[HardwareDiag ] ==> ControlSystem [code: %08d]\n", cs_req.value);
+    uint32_t sendingResult = traffic_light_ICode_FCode(&cs_proxy.base, &cs_req, NULL, &cs_res, NULL);
+    fprintf(stderr,"[HardwareDiag ] ==> ControlSystem Sent [code: %08d]\n", cs_req.value);
+    if (sendingResult == rcOk) {
+        //traffic_light_HardwareDiagnostic_entity_dispatch(&entity, &req.base_, &req_arena, &res.base_, &res_arena);
+    } else {
+        fprintf(stderr,"[HardwareDiag ] ERR Failed to call ControlCenter.IMode.FMode(CODE)[%d]\n", sendingResult);
+    }
+
     return NK_EOK;
 }
 
@@ -77,6 +76,7 @@ int main(int argc, const char *argv[]) {
     traffic_light_HardwareDiagnostic_entity_res hwd_res;
     traffic_light_HardwareDiagnostic_entity hwd_entity;
     traffic_light_HardwareDiagnostic_entity_init(&hwd_entity, CreateIDiagMessageImpl());
+    fprintf(stderr, "[HardwareDiag ] HardwareDiagnostic service transport OK\n");
 
     // Transport infrastructure for ControlSystem connection
     NkKosTransport cs_transport;
@@ -86,6 +86,7 @@ int main(int argc, const char *argv[]) {
     nk_iid_t cs_riid = ServiceLocatorGetRiid(cs_handle, "traffic_light.ControlSystem.code");
     assert(cs_riid != INVALID_RIID);
     traffic_light_ICode_proxy_init(&cs_proxy, &cs_transport.base, cs_riid);
+    fprintf(stderr, "[HardwareDiag ] ControlSystem client transport OK\n");
 
     fprintf(stderr, "[HardwareDiag ] OK\n");
 
