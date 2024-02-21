@@ -92,6 +92,9 @@ int main(void) {
     traffic_light_IDiagMessage_proxy_init(&hd_proxy, &hd_transport.base, hd_riid);
     traffic_light_IDiagMessage_Write_req hd_req;
     traffic_light_IDiagMessage_Write_res hd_res;
+    char reqBuffer[traffic_light_IDiagMessage_Write_req_arena_size];
+    struct nk_arena hd_reqArena = NK_ARENA_INITIALIZER(reqBuffer, reqBuffer + sizeof(reqBuffer));
+
     fprintf(stderr, "[LightsGPIO   ] HardwareDiagnostic client transport OK\n");
 
     fprintf(stderr, "[LightsGPIO   ] OK\n");
@@ -104,11 +107,12 @@ int main(void) {
     rtl_memset(ctl3, 0, 128);
     rtl_memset(ctl4, 0, 128);
 
-
     do {
         nk_req_reset(&req);
         nk_arena_reset(&req_arena);
         nk_arena_reset(&res_arena);
+        nk_req_reset(&hd_req);
+        nk_arena_reset(&hd_reqArena);
 
         if (nk_transport_recv(&transport.base, &req.base_, &req_arena) != NK_EOK) {
             fprintf(stderr, "[LightsGPIO   ] nk_transport_recv error\n");
@@ -126,9 +130,6 @@ int main(void) {
                     colorize_traffic_lights(bs4, ctl4)
             );
         }
-
-        char reqBuffer[traffic_light_IDiagMessage_Write_req_arena_size];
-        struct nk_arena hd_reqArena = NK_ARENA_INITIALIZER(reqBuffer, reqBuffer + sizeof(reqBuffer));
 
         char buffer[traffic_light_IDiagMessage_Write_req_arena_size];
         rtl_memset(buffer, 0, traffic_light_IDiagMessage_Write_req_arena_size);

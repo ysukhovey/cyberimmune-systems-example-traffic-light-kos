@@ -37,9 +37,9 @@ nk_err_t WriteImpl(__rtl_unused struct traffic_light_IDiagMessage          *self
     if (msg == RTL_NULL) {
         fprintf(stderr, "[HardwareDiag ] ERR Can`t get message from arena!\n");
         return NK_EBADMSG;
+    } else {
+        fprintf(stderr,"[HardwareDiag ] GOT [code: %08d, message: %s]\n", req->inMessage.code, msg);
     }
-
-    fprintf(stderr, "[HardwareDiag ] GOT [code: %08d, message: %s]\n", req->inMessage.code, msg);
 
 /*
         cs_req.value = req->inMessage.code;
