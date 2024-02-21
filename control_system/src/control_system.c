@@ -150,7 +150,9 @@ int main(int argc, const char *argv[])
                     fprintf(stderr, "[ControlSystem] Exchange nk_transport_reply error (%d)\n", ex_reply_result);
                 }
             }
+            traffic_light_ControlSystem_entity_dispatch(&cs_entity, &mc_req.base_, &mc_req_arena, &mc_res.base_, &mc_res_arena);
         }
+        traffic_light_ControlSystem_entity_dispatch(&cs_entity, &ex_req.base_, &ex_req_arena, &ex_res.base_, &ex_res_arena);
 
         // Wait for request from HardwareDiagnostic
         if (nk_transport_recv(&hwd_transport.base, &hwd_req.base_, &hwd_req_arena) == NK_EOK) {
@@ -166,9 +168,8 @@ int main(int argc, const char *argv[])
             }
 */
         }
-        traffic_light_ControlSystem_entity_dispatch(&cs_entity, &mc_req.base_, &mc_req_arena, &mc_res.base_, &mc_res_arena);
-        traffic_light_ControlSystem_entity_dispatch(&cs_entity, &ex_req.base_, &ex_req_arena, &ex_res.base_, &ex_res_arena);
         traffic_light_ControlSystem_entity_dispatch(&cs_entity, &hwd_req.base_, &hwd_req_arena, &hwd_res.base_, &hwd_res_arena);
+
     }
 
     return EXIT_SUCCESS;

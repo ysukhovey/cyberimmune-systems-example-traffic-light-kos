@@ -14,7 +14,10 @@
 #include <traffic_light/ICode.idl.h>
 
 // ControlSystem Transport Descriptor
+NkKosTransport cs_transport;
 struct traffic_light_ICode_proxy cs_proxy;
+Handle cs_handle;
+nk_iid_t cs_riid;
 traffic_light_ICode_FCode_req cs_req;
 traffic_light_ICode_FCode_res cs_res;
 
@@ -73,17 +76,18 @@ int main(int argc, const char *argv[]) {
     traffic_light_HardwareDiagnostic_entity_req hwd_req;
     char hwd_req_buffer[traffic_light_HardwareDiagnostic_entity_req_arena_size];
     struct nk_arena hwd_req_arena = NK_ARENA_INITIALIZER(hwd_req_buffer, hwd_req_buffer + sizeof(hwd_req_buffer));
+    char hwd_res_buffer[traffic_light_HardwareDiagnostic_entity_res_arena_size];
+    struct nk_arena hwd_res_arena = NK_ARENA_INITIALIZER(hwd_res_buffer, hwd_res_buffer + sizeof(hwd_res_buffer));
     traffic_light_HardwareDiagnostic_entity_res hwd_res;
     traffic_light_HardwareDiagnostic_entity hwd_entity;
     traffic_light_HardwareDiagnostic_entity_init(&hwd_entity, CreateIDiagMessageImpl());
     fprintf(stderr, "[HardwareDiag ] HardwareDiagnostic service transport OK\n");
 
     // Transport infrastructure for ControlSystem connection
-    NkKosTransport cs_transport;
-    Handle cs_handle = ServiceLocatorConnect("diag_cs_connection");
+    cs_handle = ServiceLocatorConnect("diag_cs_connection");
     assert(cs_handle != INVALID_HANDLE);
     NkKosTransport_Init(&cs_transport, cs_handle, NK_NULL, 0);
-    nk_iid_t cs_riid = ServiceLocatorGetRiid(cs_handle, "traffic_light.ControlSystem.code");
+    cs_riid = ServiceLocatorGetRiid(cs_handle, "traffic_light.ControlSystem.code");
     assert(cs_riid != INVALID_RIID);
     traffic_light_ICode_proxy_init(&cs_proxy, &cs_transport.base, cs_riid);
     fprintf(stderr, "[HardwareDiag ] ControlSystem client transport OK\n");
@@ -96,7 +100,7 @@ int main(int argc, const char *argv[]) {
 
         uint32_t hwdRecv = nk_transport_recv(&hwd_transport.base, &hwd_req.base_, &hwd_req_arena);
         if (hwdRecv == NK_EOK) {
-            uint32_t hwdRepl = nk_transport_reply(&hwd_transport.base, &hwd_res.base_, RTL_NULL);
+            uint32_t hwdRepl = nk_transport_reply(&hwd_transport.base, &hwd_res.base_, &hwd_res_arena);
             if (hwdRepl != NK_EOK) {
                 fprintf(stderr, "[HardwareDiag ] nk_transport_reply error [%d]\n", hwdRepl);
             }
