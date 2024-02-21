@@ -142,16 +142,16 @@ int main(void) {
         rtl_memset(logMessage, 0, traffic_light_IDiagMessage_Write_req_inMessage_message_size);
         nk_ptr_t *message = nk_arena_alloc(nk_ptr_t, &hd_reqArena, &(hd_req.inMessage.message), 1);
         if (message == RTL_NULL) {
-            fprintf(stderr, "[LightsGPIO   ] ERR Can`t allocate memory in arena!\n");
+            fprintf(stderr, "[LightsGPIO   ] ERR Can`t allocate memory in the request arena!\n");
         } else {
             logMessageLength = rtl_snprintf(logMessage, traffic_light_IDiagMessage_Write_req_inMessage_message_size, "%s", buffer);
 
             if (logMessageLength < 0) {
-                fprintf(stderr, "[LightsGPIO   ] ERR Length of message is negative number!\n");
+                fprintf(stderr, "[LightsGPIO   ] ERR Length of message is a negative number!\n");
             } else {
                 nk_char_t *str = nk_arena_alloc(nk_char_t, &hd_reqArena, &(message[0]), (nk_size_t)(logMessageLength + 1));
                 if (str == RTL_NULL) {
-                    fprintf(stderr, "[LightsGPIO   ] ERR Can`t allocate memory in arena!\n");
+                    fprintf(stderr, "[LightsGPIO   ] ERR Can`t allocate memory in the request arena!\n");
                 } else {
                     rtl_strncpy(str, logMessage, (rtl_size_t)(logMessageLength + 1));
                     // todo REAL CODE!
@@ -161,7 +161,7 @@ int main(void) {
 
                     uint32_t send_result = traffic_light_IDiagMessage_Write(&hd_proxy.base, &hd_req, &hd_reqArena, &hd_res, NULL);
                     if (send_result != NK_EOK) {
-                        fprintf(stderr, "[LightsGPIO   ] ERR Can`t send message to HardwareDiagnostic entity!\n");
+                        fprintf(stderr, "[LightsGPIO   ] ERR Can`t send message to the HardwareDiagnostic entity!\n");
                     } else {
                         uint32_t resReply = nk_transport_reply(&transport.base, &res.base_, &res_arena);
                         if (resReply != NK_EOK) {

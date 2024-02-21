@@ -52,7 +52,7 @@ nk_err_t WriteImpl(__rtl_unused struct traffic_light_IDiagMessage          *self
             fprintf(stderr,"[HardwareDiag ] ERR Failed to call ControlCenter.IMode.FMode(CODE)[%d]\n", sendingResult);
         }
 */
-        return NK_EOK;
+    return NK_EOK;
 }
 
 struct traffic_light_IDiagMessage *CreateIDiagMessageImpl(void) {
