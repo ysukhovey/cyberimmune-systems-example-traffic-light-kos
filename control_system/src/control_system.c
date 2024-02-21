@@ -120,19 +120,19 @@ int main(int argc, const char *argv[])
     for(;;) {
         nk_req_reset(&ex_req);
         nk_arena_reset(&ex_req_arena);
-
         nk_req_reset(&hwd_req);
         nk_arena_reset(&hwd_req_arena);
-
 
         // Wait for request from Exchange
         if (nk_transport_recv(&ex_transport.base, &ex_req.base_, &ex_req_arena) == NK_EOK) {
             req.value = ex_req.value;
             fprintf(stderr, "[ControlSystem] ==> ModeChecker %08x\n", (rtl_uint32_t) req.value);
-            traffic_light_IMode_FMode(&proxy.base, &req, NULL, &res, NULL) == rcOk;
-            uint32_t ex_reply_result = nk_transport_reply(&ex_transport.base, &ex_res.base_, &ex_res_arena);
-            if (ex_reply_result != NK_EOK) {
-                fprintf(stderr, "[ControlSystem] Exchange nk_transport_reply error (%d)\n", ex_reply_result);
+            uint32_t mc_call_result = traffic_light_IMode_FMode(&proxy.base, &req, NULL, &res, NULL);
+            if (mc_call_result  == rcOk) {
+                uint32_t ex_reply_result = nk_transport_reply(&ex_transport.base, &ex_res.base_, &ex_res_arena);
+                if (ex_reply_result != NK_EOK) {
+                    fprintf(stderr, "[ControlSystem] Exchange nk_transport_reply error (%d)\n", ex_reply_result);
+                }
             }
         }
 
@@ -150,7 +150,10 @@ int main(int argc, const char *argv[])
             }
 */
         }
-        traffic_light_ControlSystem_entity_dispatch(&cs_entity, &req.base_, &req_arena, &res.base_, &res_arena);
+        uint32_t dispatch_result = traffic_light_ControlSystem_entity_dispatch(&cs_entity, &req.base_, &req_arena, &res.base_, &res_arena);
+        if (dispatch_result != NK_EOK) {
+            fprintf(stderr, "[ControlSystem] dispatch() error (%d)\n", dispatch_result);
+        }
     }
 
     return EXIT_SUCCESS;
