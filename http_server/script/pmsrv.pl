@@ -11,8 +11,8 @@ use Time::Moment;
 my $PRODUCTION = 'false';
 
 my @TRAFFIC_LIGHTS = (
-    1431655765,
-    1094795585
+    1094795585,
+    1431655765
 );
 
 my @STATUS_LIST = ();

@@ -1,7 +1,15 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
+#include <stdbool.h>
+#include <rtl/string.h>
+
 #include <coresrv/nk/transport-kos.h>
 #include <coresrv/sl/sl_api.h>
 #include <assert.h>
-#include "diag_msg.h"
+
+#include <traffic_light/HardwareDiagnostic.edl.h>
+#include <traffic_light/IDiagMessage.idl.h>
 #include <traffic_light/LightsGPIO.edl.h>
 #include <traffic_light/ICode.idl.h>
 
@@ -15,8 +23,25 @@ nk_err_t WriteImpl(__rtl_unused struct traffic_light_IDiagMessage          *self
                          const struct nk_arena                             *reqArena,
                          __rtl_unused traffic_light_IDiagMessage_Write_res *res,
                          __rtl_unused struct nk_arena                      *resArena) {
-    char *msg = WriteCommonImpl(self, req, reqArena, res, resArena, "HardwareDiag");
-    if (msg != NULL) {
+    nk_uint32_t msgCount = 0;
+
+    nk_ptr_t *message = nk_arena_get(nk_ptr_t, reqArena, &(req->inMessage.message), &msgCount);
+    if (message == RTL_NULL) {
+        fprintf(stderr, "[HardwareDiag ] ERR Can`t get messages from arena!\n");
+        return NK_EBADMSG;
+    }
+
+    nk_char_t *msg = RTL_NULL;
+    nk_uint32_t msgLen = 0;
+    msg = nk_arena_get(nk_char_t, reqArena, &message[0], &msgLen);
+    if (msg == RTL_NULL) {
+        fprintf(stderr, "[HardwareDiag ] ERR Can`t get message from arena!\n");
+        return NK_EBADMSG;
+    }
+
+    fprintf(stderr, "[HardwareDiag ] GOT [code: %08d, message: %s]\n", req->inMessage.code, msg);
+
+/*
         cs_req.value = req->inMessage.code;
         fprintf(stderr,"[HardwareDiag ] ==> ControlSystem [code: %08d]\n", cs_req.value);
         uint32_t sendingResult = traffic_light_ICode_FCode(&cs_proxy.base, &cs_req, NULL, &cs_res, NULL);
@@ -26,11 +51,8 @@ nk_err_t WriteImpl(__rtl_unused struct traffic_light_IDiagMessage          *self
         } else {
             fprintf(stderr,"[HardwareDiag ] ERR Failed to call ControlCenter.IMode.FMode(CODE)[%d]\n", sendingResult);
         }
+*/
         return NK_EOK;
-    } else {
-        fprintf(stderr,"[HardwareDiag ] ERR The received message is empty\n");
-        return NK_EBADMSG;
-    }
 }
 
 struct traffic_light_IDiagMessage *CreateIDiagMessageImpl(void) {
