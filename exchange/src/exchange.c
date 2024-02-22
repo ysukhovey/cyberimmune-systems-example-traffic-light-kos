@@ -127,11 +127,8 @@ uint32_t request_data_from_http_server() {
         char response_data[MSG_BUF_SIZE + 1];
         int request_len = 0;
         size_t n;
-
         snprintf(request_data, MSG_CHUNK_BUF_SIZE,
                  "GET %s HTTP/1.1\r\nHost: %s:%d\r\n\r\n", HOST_PATH, HOST_IP, HOST_PORT);
-
-        //fprintf(stderr, "[Exchange     ] Request prepared:\n%s\n", request_data);
         request_len = strlen(request_data);
         write(sockfd, request_data, request_len);
         if (write(sockfd, request_data, request_len) >= 0) {
@@ -150,13 +147,7 @@ uint32_t request_data_from_http_server() {
                 if (status != 0)
                     fprintf(stderr, "[Exchange     ] ERR JSON Parsing error: %s\n", json_error_string(status));
                 if (js != NULL) free(js);
-                //fprintf(stderr, "[Exchange     ] response data: \n%s\n\n", response_data);
-                // todo here the sending to the ControlSystem should start
-                // todo extract JSON, parse it and send combination(s)
-                //send_message_to_control_system(message);
-
             }
-
         }
     }
     close(sockfd);
