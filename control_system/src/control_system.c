@@ -83,7 +83,7 @@ int main(int argc, const char *argv[])
     traffic_light_CCode_component hwd_component;
     traffic_light_CCode_component_init(&hwd_component, CreateICodeImpl());
 
-    fprintf(stderr, "[ControlSystem] HardwareDiagnostic transport OK\n");
+    fprintf(stderr, "[ControlSystem] HardwareDiagnostic service transport (iid=%d) OK\n", hwd_iid);
 
     // Transport infrastructure for Exchange messages
     NkKosTransport ex_transport;
@@ -100,7 +100,24 @@ int main(int argc, const char *argv[])
     traffic_light_CMode_component ex_component;
     traffic_light_CMode_component_init(&ex_component, CreateIModeImpl(0));
 
-    fprintf(stderr, "[ControlSystem] Exchange transport OK\n");
+    fprintf(stderr, "[ControlSystem] Exchange service transport (iid=%d) OK\n", ex_iid);
+
+    //---------------
+    NkKosTransport ex_cl_transport;
+    struct traffic_light_IMode_proxy ex_cl_proxy;
+    Handle ex_cl_handle = ServiceLocatorConnect("cs_exchange_connection");
+    assert(ex_cl_handle != INVALID_HANDLE);
+    NkKosTransport_Init(&ex_cl_transport, ex_cl_handle, NK_NULL, 0);
+    nk_iid_t ex_cl_riid = ServiceLocatorGetRiid(ex_cl_handle, "traffic_light.Exchange.code");
+    assert(ex_cl_riid != INVALID_RIID);
+    traffic_light_IMode_proxy_init(&ex_cl_proxy, &ex_cl_transport.base, ex_cl_riid);
+    traffic_light_IMode_FMode_req ex_cl_req;
+    traffic_light_IMode_FMode_res ex_cl_res;
+    char ex_cl_req_buffer[traffic_light_IMode_FMode_req_arena_size];
+    struct nk_arena ex_cl_req_arena = NK_ARENA_INITIALIZER(ex_cl_req_buffer, ex_cl_req_buffer + sizeof(ex_cl_req_buffer));
+    char ex_cl_res_buffer[traffic_light_IMode_FMode_res_arena_size];
+    struct nk_arena ex_cl_res_arena = NK_ARENA_INITIALIZER(ex_cl_res_buffer, ex_cl_res_buffer + sizeof(ex_cl_res_buffer));
+    fprintf(stderr, "[ControlSystem] Exception client transport (riid=%d) OK\n", ex_cl_riid);
 
     //---------------
     NkKosTransport mc_transport;
@@ -117,7 +134,7 @@ int main(int argc, const char *argv[])
     struct nk_arena mc_req_arena = NK_ARENA_INITIALIZER(mc_req_buffer, mc_req_buffer + sizeof(mc_req_buffer));
     char mc_res_buffer[traffic_light_IMode_FMode_res_arena_size];
     struct nk_arena mc_res_arena = NK_ARENA_INITIALIZER(mc_res_buffer, mc_res_buffer + sizeof(mc_res_buffer));
-    fprintf(stderr, "[ControlSystem] ModeChecker transport OK\n");
+    fprintf(stderr, "[ControlSystem] ModeChecker client transport (riid=%d) OK\n", mc_riid);
 
     traffic_light_ControlSystem_entity cs_entity;
     traffic_light_ControlSystem_entity_init(&cs_entity, &hwd_component, &ex_component);
@@ -155,16 +172,20 @@ int main(int argc, const char *argv[])
 
         // Wait for request from HardwareDiagnostic
         if (nk_transport_recv(&hwd_transport.base, &hwd_req.base_, &hwd_req_arena) == NK_EOK) {
-            // todo Send data to the Exchange
             traffic_light_ControlSystem_entity_dispatch(&cs_entity, &hwd_req.base_, &hwd_req_arena, &hwd_res.base_, &hwd_res_arena);
             fprintf(stderr, "[ControlSystem] GOT Code from HardwareDiagnostic %08x\n", (rtl_uint32_t) hwd_req.value);
-            //traffic_light_IMode_FMode(&proxy.base, &req, NULL, &res, NULL) == rcOk;
-/*
+            fprintf(stderr, "[ControlSystem] ==> Exchange %08x\n", (rtl_uint32_t) hwd_req.value);
+            ex_cl_req.value = hwd_req.value;
+            uint32_t  ex_cl_call_result = traffic_light_ICode_FCode(&ex_cl_proxy.base, &ex_cl_req, NULL, &ex_cl_res, NULL);
+            if (ex_cl_call_result == NK_EOK) {
+                fprintf(stderr, "[ControlSystem] Sent %08x to Exchange\n", (rtl_uint32_t) hwd_req.value);
+            } else {
+                fprintf(stderr, "[ControlSystem] Exchange service client nk_transport_reply error (%d)\n", ex_cl_call_result);
+            }
             uint32_t hwd_reply_result = nk_transport_reply(&hwd_transport.base, &hwd_res.base_, &hwd_res_arena);
             if (hwd_reply_result != NK_EOK) {
-                fprintf(stderr, "[ControlSystem] HardwareDiagnostic nk_transport_reply error (%d)\n", hwd_reply_result);
+                fprintf(stderr, "[ControlSystem] HardwareDiagnostic service nk_transport_reply error (%d)\n", hwd_reply_result);
             }
-*/
         }
 
     }

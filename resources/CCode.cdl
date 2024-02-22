@@ -1,5 +1,5 @@
 component traffic_light.CCode
 
 endpoints {
-    mode : traffic_light.ICode
+    code : traffic_light.ICode
 }

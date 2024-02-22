@@ -16,6 +16,7 @@
 
 #include <traffic_light/Exchange.edl.h>
 #include <traffic_light/ICode.idl.h>
+#include <traffic_light/CCode.cdl.h>
 #include <traffic_light/IMode.idl.h>
 
 #include "../../microjson/src/mjson.h"
@@ -82,15 +83,6 @@ char *str_replace(char *orig, char *rep, char *with) {
     }
     strcpy(tmp, orig);
     return result;
-}
-//---------------
-void init_http_server_connection() {
-
-}
-
-uint32_t send_message_to_control_system(traffic_light_IDiagMessage_DiagnosticMessage message) {
-    sprintf(stderr, "[Exchange     ] code: %08x, message: %p\n", message.code, message.message);
-    return 0;
 }
 
 uint32_t request_data_from_http_server() {
@@ -250,7 +242,9 @@ int main(int argc, const char *argv[]) {
     traffic_light_ICode_FCode_res cse_res;
     char cse_res_buffer[traffic_light_ICode_FCode_res_arena_size];
     struct nk_arena cse_res_arena = NK_ARENA_INITIALIZER(cse_res_buffer, cse_res_buffer + sizeof(cse_res_buffer));
-    fprintf(stderr, "[Exchange     ] ControlSystem service transport register OK\n");
+    traffic_light_CCode_component cse_component;
+    traffic_light_CCode_component_init(&cse_component, CreateICodeImpl());
+    fprintf(stderr, "[Exchange     ] ControlSystem service transport register (iid=%d) OK\n", cse_iid);
 
     // ControlCenter transport infrastructure
     NkKosTransport cs_transport;
@@ -258,33 +252,38 @@ int main(int argc, const char *argv[]) {
     Handle cs_handle = ServiceLocatorConnect("exchange_cs_connection");
     assert(cs_handle != INVALID_HANDLE);
     NkKosTransport_Init(&cs_transport, cs_handle, NK_NULL, 0);
-    //nk_iid_t cs_riid = ServiceLocatorGetRiid(cs_handle, "traffic_light.ControlSystem.write");
     nk_iid_t cs_riid = ServiceLocatorGetRiid(cs_handle, "traffic_light.ControlSystem.mode");
     assert(cs_riid != INVALID_RIID);
     traffic_light_IMode_proxy_init(&cs_proxy, &cs_transport.base, cs_riid);
     traffic_light_IMode_FMode_req cs_req;
     traffic_light_IMode_FMode_res cs_res;
-    fprintf(stderr, "[Exchange     ] ControlSystem client transport location OK\n");
+    fprintf(stderr, "[Exchange     ] ControlSystem client transport location (riid=%d) OK\n", cs_riid);
+
+    traffic_light_Exchange_entity ex_entity;
+    traffic_light_Exchange_entity_init(&ex_entity, &cse_component);
 
     fprintf(stderr, "[Exchange     ] OK\n");
 
     for(;;) {
-        // todo 1. request messages from the http-server
+        traffic_light_Exchange_entity_dispatch(&ex_entity, &cse_req.base_, &cse_req_arena, &cse_res.base_, &cse_res_arena);
         request_data_from_http_server();
         for (int i = 0; i < c_count; i++) {
             cs_req.value = combinations[i];
+            fprintf(stderr, "[Exchange     ] ==> ControlSystem [%08x]\n", cs_req.value);
             uint32_t sendingResult = traffic_light_IMode_FMode(&cs_proxy.base, &cs_req, NULL, &cs_res, NULL);
             if (sendingResult == rcOk) {
                 //traffic_light_ModeChecker_entity_dispatch(&entity, &req.base_, &req_arena, &res.base_, &res_arena);
             } else {
-                fprintf(stderr, "[Exchange     ] ERR Failed to call ControlCenter.IMode.FMode() [%d]\n", sendingResult);
+                fprintf(stderr, "[Exchange     ] ERR Failed to call ControlCenter.IMode.FMode() [%d] /riid=%d\n", sendingResult, cs_riid);
             }
         }
-        // todo 2. receive (if any) status message from the ControlSystem
-/*
-            traffic_light_ModeChecker_entity_dispatch(&entity, &req.base_, &req_arena, &res.base_, &res_arena);
-            res.modeChecker_mode.FMode.result = traffic_light_IMode_WRONGCOMBO;
-*/
+        if (nk_transport_recv(&cse_transport.base, &cse_req.base_, &cse_req_arena) == NK_EOK) {
+            fprintf(stderr, "[Exchange     ] GOT Code from ControlSystem %08x\n", (rtl_uint32_t) cse_req.value);
+            uint32_t cse_reply_result = nk_transport_reply(&cse_transport.base, &cse_res.base_, &cse_res_arena);
+            if (cse_reply_result != NK_EOK) {
+                fprintf(stderr, "[Exchange     ] ControlSystem service nk_transport_reply error (%d)\n", cse_reply_result);
+            }
+        }
     }
 
     return EXIT_SUCCESS;
