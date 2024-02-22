@@ -29,7 +29,7 @@
 #define HOST_PORT               3000
 #define HOST_PATH               "/traffic_light"
 #define NUM_RETRIES             10
-#define MSG_BUF_SIZE            1024
+#define MSG_BUF_SIZE            2048
 #define MSG_CHUNK_BUF_SIZE      256
 #define SA struct sockaddr
 
@@ -125,28 +125,33 @@ uint32_t request_data_from_http_server() {
 
         char request_data[MSG_BUF_SIZE + 1];
         char response_data[MSG_BUF_SIZE + 1];
+        char http_response[MSG_BUF_SIZE + 1];
+        memset(http_response, 0, MSG_BUF_SIZE + 1);
         int request_len = 0;
+        char *ptr;
         size_t n;
         snprintf(request_data, MSG_CHUNK_BUF_SIZE,
                  "GET %s HTTP/1.1\r\nHost: %s:%d\r\n\r\n", HOST_PATH, HOST_IP, HOST_PORT);
         request_len = strlen(request_data);
         write(sockfd, request_data, request_len);
         if (write(sockfd, request_data, request_len) >= 0) {
-            fprintf(stderr, "[Exchange     ] Request sent, reading response.\n");
+            fprintf(stderr, "[Exchange     ] HTTP Request sent, reading response.\n");
             while ((n = read(sockfd, response_data, MSG_BUF_SIZE)) > 0) {
                 response_data[n] = '\0';
-                char *json_start = strstr(response_data, "\"{") + 1;
-                char *json_end = strstr(json_start, "}");
-                *(json_end + 1) = '\0';
-                char *js = str_replace(json_start, "\\\"", "\"");
-                fprintf(stderr, "[Exchange     ] Found JSON: %s\n", js);
-                c_count = 0;
-                int status = json_read_object(js, json_combinations, NULL);
-                for (int i = 0; i < c_count; i++)
-                    fprintf(stderr, "[Exchange     ] Found combination [%08x]\n", combinations[i]);
-                if (status != 0)
-                    fprintf(stderr, "[Exchange     ] ERR JSON Parsing error: %s\n", json_error_string(status));
-                if (js != NULL) free(js);
+                ptr = strstr(response_data, "\r\n\r\n");
+                snprintf(http_response, MSG_BUF_SIZE,"%s", ptr);
+            }
+            char *json_start = strstr(http_response, "\"{") + 1;
+            char *js = str_replace(json_start, "\\\"", "\"");
+            c_count = 0;
+            int status = json_read_object(js, json_combinations, NULL);
+            if (js != NULL) free(js);
+            if (status != 0) {
+                fprintf(stderr, "[Exchange     ] ERR JSON parser: error \"%s\"\n", json_error_string(status));
+            } else {
+                for (int i = 0; i < c_count; i++) {
+                    fprintf(stderr, "[Exchange     ] JSON parser: entry found [%08x]\n", combinations[i]);
+                }
             }
         }
     }

@@ -130,9 +130,9 @@ int main(int argc, const char *argv[])
     traffic_light_IMode_proxy_init(&mc_proxy, &mc_transport.base, mc_riid);
     traffic_light_IMode_FMode_req mc_req;
     traffic_light_IMode_FMode_res mc_res;
-    char mc_req_buffer[traffic_light_IMode_FMode_req_arena_size];
+    char mc_req_buffer[traffic_light_ModeChecker_entity_res_arena_size];
     struct nk_arena mc_req_arena = NK_ARENA_INITIALIZER(mc_req_buffer, mc_req_buffer + sizeof(mc_req_buffer));
-    char mc_res_buffer[traffic_light_IMode_FMode_res_arena_size];
+    char mc_res_buffer[traffic_light_ModeChecker_entity_res_arena_size];
     struct nk_arena mc_res_arena = NK_ARENA_INITIALIZER(mc_res_buffer, mc_res_buffer + sizeof(mc_res_buffer));
     fprintf(stderr, "[ControlSystem] ModeChecker client transport (riid=%d) OK\n", mc_riid);
 
