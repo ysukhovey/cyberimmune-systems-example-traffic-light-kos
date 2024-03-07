@@ -10,6 +10,7 @@
 #include <kos_net.h>
 #include <string.h>
 #include <strings.h>
+#include <pthread.h>
 
 #include <coresrv/nk/transport-kos.h>
 #include <coresrv/sl/sl_api.h>
@@ -183,6 +184,49 @@ static struct traffic_light_ICode *CreateICodeImpl() {
     return &impl.base;
 }
 
+// Global variables
+// Message code from ControlSystem
+uint32_t message_code;
+// Listener thread ID
+pthread_t listener_id;
+
+//
+traffic_light_Exchange_entity ex_entity;
+
+// Exchange IPC Server
+NkKosTransport cse_transport;
+ServiceId cse_iid;
+Handle cse_handle;
+traffic_light_ICode_FCode_req cse_req;
+char cse_req_buffer[traffic_light_ICode_FCode_req_arena_size];
+struct nk_arena cse_req_arena = NK_ARENA_INITIALIZER(cse_req_buffer, cse_req_buffer + sizeof(cse_req_buffer));;
+traffic_light_ICode_FCode_res cse_res;
+char cse_res_buffer[traffic_light_ICode_FCode_res_arena_size];
+struct nk_arena cse_res_arena = NK_ARENA_INITIALIZER(cse_res_buffer, cse_res_buffer + sizeof(cse_res_buffer));
+traffic_light_CCode_component cse_component;
+
+void *message_listener(void *vargp) {
+    fprintf(stderr, "[Exchange     ] Entering the message_listener()\n");
+//    for (;;) {
+        nk_req_reset(&cse_req);
+        nk_req_reset(&cse_res);
+        nk_arena_reset(&cse_req_arena);
+        nk_arena_reset(&cse_res_arena);
+        uint32_t recv_result = nk_transport_recv(&cse_transport.base, &cse_req.base_, &cse_req_arena);
+        traffic_light_Exchange_entity_dispatch(&ex_entity, &cse_req.base_, &cse_req_arena, &cse_res.base_, &cse_res_arena);
+        fprintf(stderr, "[Exchange     ] recv_result = %d\n", recv_result);
+        if (recv_result == NK_EOK) {
+            fprintf(stderr, "[Exchange     ] GOT Code from ControlSystem %08x\n", (rtl_uint32_t) cse_req.value);
+            uint32_t cse_reply_result = nk_transport_reply(&cse_transport.base, &cse_res.base_, &cse_res_arena);
+                if (cse_reply_result != NK_EOK) {
+                    fprintf(stderr, "[Exchange     ] ControlSystem service nk_transport_reply error (%d)\n", cse_reply_result);
+                }
+        }
+//    }
+    fprintf(stderr, "[Exchange     ] Returning from the message_listener()\n");
+    return NULL;
+}
+
 int main(int argc, const char *argv[]) {
     int               socketfd;
     struct            ifconf conf;
@@ -224,23 +268,12 @@ int main(int argc, const char *argv[]) {
 
     fprintf(stderr, "[Exchange     ] INF Network check up OK\n");
 
-    int config = request_data_from_http_server();
-
     //
-    NkKosTransport cse_transport;
-    ServiceId cse_iid;
-    Handle cse_handle = ServiceLocatorRegister("cs_exchange_connection", NULL, 0, &cse_iid);
+    cse_handle = ServiceLocatorRegister("cs_exchange_connection", NULL, 0, &cse_iid);
     assert(cse_handle != INVALID_HANDLE);
     NkKosTransport_Init(&cse_transport, cse_handle, NK_NULL, 0);
-    traffic_light_ICode_FCode_req cse_req;
-    char cse_req_buffer[traffic_light_ICode_FCode_req_arena_size];
-    struct nk_arena cse_req_arena = NK_ARENA_INITIALIZER(cse_req_buffer, cse_req_buffer + sizeof(cse_req_buffer));
-    traffic_light_ICode_FCode_res cse_res;
-    char cse_res_buffer[traffic_light_ICode_FCode_res_arena_size];
-    struct nk_arena cse_res_arena = NK_ARENA_INITIALIZER(cse_res_buffer, cse_res_buffer + sizeof(cse_res_buffer));
-    traffic_light_CCode_component cse_component;
     traffic_light_CCode_component_init(&cse_component, CreateICodeImpl());
-    fprintf(stderr, "[Exchange     ] ControlSystem service transport register (iid=%d) OK\n", cse_iid);
+    fprintf(stderr, "[Exchange     ] ControlSystem IPS service transport register (iid=%d) OK\n", cse_iid);
 
     // ControlCenter transport infrastructure
     NkKosTransport cs_transport;
@@ -253,32 +286,27 @@ int main(int argc, const char *argv[]) {
     traffic_light_IMode_proxy_init(&cs_proxy, &cs_transport.base, cs_riid);
     traffic_light_IMode_FMode_req cs_req;
     traffic_light_IMode_FMode_res cs_res;
-    fprintf(stderr, "[Exchange     ] ControlSystem client transport location (riid=%d) OK\n", cs_riid);
+    fprintf(stderr, "[Exchange     ] ControlSystem IPC client transport location (riid=%d) OK\n", cs_riid);
 
-    traffic_light_Exchange_entity ex_entity;
     traffic_light_Exchange_entity_init(&ex_entity, &cse_component);
 
     fprintf(stderr, "[Exchange     ] OK\n");
 
+    pthread_create(&listener_id, NULL, message_listener, &message_code);
+
     for(;;) {
-        traffic_light_Exchange_entity_dispatch(&ex_entity, &cse_req.base_, &cse_req_arena, &cse_res.base_, &cse_res_arena);
+        //traffic_light_Exchange_entity_dispatch(&ex_entity, &cse_req.base_, &cse_req_arena, &cse_res.base_, &cse_res_arena);
         request_data_from_http_server();
         for (int i = 0; i < c_count; i++) {
             cs_req.value = combinations[i];
             fprintf(stderr, "[Exchange     ] ==> ControlSystem [%08x]\n", cs_req.value);
             uint32_t sendingResult = traffic_light_IMode_FMode(&cs_proxy.base, &cs_req, NULL, &cs_res, NULL);
             if (sendingResult == rcOk) {
-                //traffic_light_ModeChecker_entity_dispatch(&entity, &req.base_, &req_arena, &res.base_, &res_arena);
+                traffic_light_Exchange_entity_dispatch(&ex_entity, &cs_req.base_, NULL, &cs_res.base_, NULL);
             } else {
                 fprintf(stderr, "[Exchange     ] ERR Failed to call ControlCenter.IMode.FMode() [%d] /riid=%d\n", sendingResult, cs_riid);
             }
-        }
-        if (nk_transport_recv(&cse_transport.base, &cse_req.base_, &cse_req_arena) == NK_EOK) {
-            fprintf(stderr, "[Exchange     ] GOT Code from ControlSystem %08x\n", (rtl_uint32_t) cse_req.value);
-            uint32_t cse_reply_result = nk_transport_reply(&cse_transport.base, &cse_res.base_, &cse_res_arena);
-            if (cse_reply_result != NK_EOK) {
-                fprintf(stderr, "[Exchange     ] ControlSystem service nk_transport_reply error (%d)\n", cse_reply_result);
-            }
+            pthread_join(listener_id, NULL);
         }
     }
 

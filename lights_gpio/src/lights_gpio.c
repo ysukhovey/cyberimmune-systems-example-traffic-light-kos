@@ -74,7 +74,7 @@ int main(void) {
 
     traffic_light_LightsGPIO_entity entity;
     traffic_light_LightsGPIO_entity_init(&entity, &component);
-    fprintf(stderr, "[LightsGPIO   ] LightsGPIO service transport OK\n");
+    fprintf(stderr, "[LightsGPIO   ] LightsGPIO IPC service transport (iid=%d) OK\n", iid);
 
     NkKosTransport hd_transport;
     struct traffic_light_IDiagMessage_proxy hd_proxy;
@@ -95,7 +95,7 @@ int main(void) {
     char reqBuffer[traffic_light_IDiagMessage_Write_req_arena_size];
     struct nk_arena hd_reqArena = NK_ARENA_INITIALIZER(reqBuffer, reqBuffer + sizeof(reqBuffer));
 
-    fprintf(stderr, "[LightsGPIO   ] HardwareDiagnostic client transport OK\n");
+    fprintf(stderr, "[LightsGPIO   ] HardwareDiagnostic IPC client transport (riid=%d) OK\n", hd_riid);
 
     fprintf(stderr, "[LightsGPIO   ] OK\n");
 

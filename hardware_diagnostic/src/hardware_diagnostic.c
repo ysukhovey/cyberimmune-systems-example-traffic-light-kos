@@ -85,7 +85,7 @@ int main(int argc, const char *argv[]) {
     traffic_light_HardwareDiagnostic_entity_res hwd_res;
     traffic_light_HardwareDiagnostic_entity hwd_entity;
     traffic_light_HardwareDiagnostic_entity_init(&hwd_entity, CreateIDiagMessageImpl());
-    fprintf(stderr, "[HardwareDiag ] HardwareDiagnostic service transport OK\n");
+    fprintf(stderr, "[HardwareDiag ] HardwareDiagnostic IPC service transport (iid=%d) OK\n", hwd_iid);
 
     // Transport infrastructure for ControlSystem connection
     cs_handle = ServiceLocatorConnect("diag_cs_connection");
@@ -95,7 +95,7 @@ int main(int argc, const char *argv[]) {
     assert(cs_riid != INVALID_RIID);
     traffic_light_ICode_proxy_init(&cs_proxy, &cs_transport.base, cs_riid);
 
-    fprintf(stderr, "[HardwareDiag ] ControlSystem client transport OK\n");
+    fprintf(stderr, "[HardwareDiag ] ControlSystem IPC client transport (riid=%d) OK\n", cs_riid);
 
     fprintf(stderr, "[HardwareDiag ] OK\n");
 

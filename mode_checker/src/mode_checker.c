@@ -73,7 +73,7 @@ int main(int argc, const char *argv[]) {
     traffic_light_CMode_component_init(&mc_component, CreateIModeImpl(traffic_light_IMode_WRONGCOMBO));
     traffic_light_ModeChecker_entity mc_entity;
     traffic_light_ModeChecker_entity_init(&mc_entity, &mc_component);
-    fprintf(stderr, "[ModeChecker  ] ModeChecker service transport OK\n");
+    fprintf(stderr, "[ModeChecker  ] ModeChecker IPC service transport (iid=%d) OK\n", mc_iid);
 
     NkKosTransport transport_lights_gpio;
     struct traffic_light_IMode_proxy proxy_lights_gpio;
@@ -85,7 +85,7 @@ int main(int argc, const char *argv[]) {
     traffic_light_IMode_proxy_init(&proxy_lights_gpio, &transport_lights_gpio.base, riid);
     traffic_light_IMode_FMode_req req_lights_gpio;
     traffic_light_IMode_FMode_res res_lights_gpio;
-    fprintf(stderr, "[ModeChecker  ] LightsGPIO client transportOK\n");
+    fprintf(stderr, "[ModeChecker  ] LightsGPIO IPC client transport (riid=%d) OK\n", riid);
 
     fprintf(stderr, "[ModeChecker  ] OK\n");
 

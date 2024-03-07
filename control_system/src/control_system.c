@@ -83,7 +83,7 @@ int main(int argc, const char *argv[])
     traffic_light_CCode_component hwd_component;
     traffic_light_CCode_component_init(&hwd_component, CreateICodeImpl());
 
-    fprintf(stderr, "[ControlSystem] HardwareDiagnostic service transport (iid=%d) OK\n", hwd_iid);
+    fprintf(stderr, "[ControlSystem] HardwareDiagnostic IPC service transport (iid=%d) OK\n", hwd_iid);
 
     // Transport infrastructure for Exchange messages
     NkKosTransport ex_transport;
@@ -100,7 +100,7 @@ int main(int argc, const char *argv[])
     traffic_light_CMode_component ex_component;
     traffic_light_CMode_component_init(&ex_component, CreateIModeImpl(0));
 
-    fprintf(stderr, "[ControlSystem] Exchange service transport (iid=%d) OK\n", ex_iid);
+    fprintf(stderr, "[ControlSystem] Exchange IPC service transport (iid=%d) OK\n", ex_iid);
 
     //---------------
     NkKosTransport ex_cl_transport;
@@ -117,7 +117,7 @@ int main(int argc, const char *argv[])
     struct nk_arena ex_cl_req_arena = NK_ARENA_INITIALIZER(ex_cl_req_buffer, ex_cl_req_buffer + sizeof(ex_cl_req_buffer));
     char ex_cl_res_buffer[traffic_light_IMode_FMode_res_arena_size];
     struct nk_arena ex_cl_res_arena = NK_ARENA_INITIALIZER(ex_cl_res_buffer, ex_cl_res_buffer + sizeof(ex_cl_res_buffer));
-    fprintf(stderr, "[ControlSystem] Exception client transport (riid=%d) OK\n", ex_cl_riid);
+    fprintf(stderr, "[ControlSystem] Exception IPC client transport (riid=%d) OK\n", ex_cl_riid);
 
     //---------------
     NkKosTransport mc_transport;
@@ -134,7 +134,7 @@ int main(int argc, const char *argv[])
     struct nk_arena mc_req_arena = NK_ARENA_INITIALIZER(mc_req_buffer, mc_req_buffer + sizeof(mc_req_buffer));
     char mc_res_buffer[traffic_light_ModeChecker_entity_res_arena_size];
     struct nk_arena mc_res_arena = NK_ARENA_INITIALIZER(mc_res_buffer, mc_res_buffer + sizeof(mc_res_buffer));
-    fprintf(stderr, "[ControlSystem] ModeChecker client transport (riid=%d) OK\n", mc_riid);
+    fprintf(stderr, "[ControlSystem] ModeChecker IPC client transport (riid=%d) OK\n", mc_riid);
 
     traffic_light_ControlSystem_entity cs_entity;
     traffic_light_ControlSystem_entity_init(&cs_entity, &hwd_component, &ex_component);

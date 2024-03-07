@@ -14,7 +14,8 @@ target_link_libraries (Exchange
         ${${PROJECT_NAME}_LIBS}
         rump::dhcpcd_client
         ${vfs_CLIENT_LIB}
-        MicroJSON)
+        MicroJSON
+        pthread)
 
 # We do not need the default VFS entity which comes from ${vfs_CLIENT_LIB}.
 set_target_properties (Exchange PROPERTIES ${vfs_ENTITY}_REPLACEMENT "")
