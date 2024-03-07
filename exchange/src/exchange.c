@@ -306,7 +306,7 @@ int main(int argc, const char *argv[]) {
             } else {
                 fprintf(stderr, "[Exchange     ] ERR Failed to call ControlCenter.IMode.FMode() [%d] /riid=%d\n", sendingResult, cs_riid);
             }
-            pthread_join(listener_id, NULL);
+            //pthread_join(listener_id, NULL);
         }
     }
 

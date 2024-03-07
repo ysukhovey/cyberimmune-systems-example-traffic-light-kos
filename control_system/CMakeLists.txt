@@ -11,4 +11,7 @@ add_dependencies (ControlSystem traffic_light_idl_files
                                 traffic_light_lights_gpio_edl_files
                                 traffic_light_hardware_diagnostic_edl_files
                                 traffic_light_mode_checker_edl_files
-                                traffic_light_control_system_edl_files )
+                                traffic_light_control_system_edl_files)
+
+target_link_libraries (ControlSystem
+                       pthread)
