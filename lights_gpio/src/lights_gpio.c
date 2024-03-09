@@ -158,7 +158,7 @@ int main(void) {
                     // todo REAL CODE!
                     hd_req.inMessage.code = (uint32_t) rand();
 
-                    fprintf(stderr, "[LightsGPIO   ] ==> HardwareDiagnostic [code: %08d, message: %s]\n", hd_req.inMessage.code, buffer);
+                    fprintf(stderr, "[LightsGPIO   ] ==> HardwareDiagnostic [code: %08x, message: %s]\n", hd_req.inMessage.code, buffer);
 
                     uint32_t send_result = traffic_light_IDiagMessage_Write(&hd_proxy.base, &hd_req, &hd_reqArena, &hd_res, NULL);
                     if (send_result != NK_EOK) {

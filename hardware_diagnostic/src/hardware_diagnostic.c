@@ -45,13 +45,13 @@ nk_err_t WriteImpl(__rtl_unused struct traffic_light_IDiagMessage          *self
         fprintf(stderr, "[HardwareDiag ] ERR Can`t get message from arena!\n");
         return NK_EBADMSG;
     } else {
-        fprintf(stderr,"[HardwareDiag ] GOT [code: %08d, message: %s]\n", req->inMessage.code, msg);
+        fprintf(stderr,"[HardwareDiag ] GOT [code: %08x, message: %s]\n", req->inMessage.code, msg);
     }
 
     cs_req.value = req->inMessage.code;
-    fprintf(stderr,"[HardwareDiag ] ==> ControlSystem [code: %08d]\n", cs_req.value);
+    fprintf(stderr,"[HardwareDiag ] ==> ControlSystem [code: %08x]\n", cs_req.value);
     uint32_t sendingResult = traffic_light_ICode_FCode(&cs_proxy.base, &cs_req, &cs_req_arena, &cs_res, &cs_res_arena);
-    fprintf(stderr,"[HardwareDiag ] ==> ControlSystem Sent [code: %08d]\n", cs_req.value);
+    fprintf(stderr,"[HardwareDiag ] ==> ControlSystem Sent [code: %08x]\n", cs_req.value);
     if (sendingResult == rcOk) {
         //traffic_light_HardwareDiagnostic_entity_dispatch(&entity, &req.base_, &req_arena, &res.base_, &res_arena);
     } else {

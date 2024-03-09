@@ -214,7 +214,7 @@ void *message_listener(void *vargp) {
         nk_arena_reset(&cse_res_arena);
         uint32_t recv_result = nk_transport_recv(&cse_transport.base, &cse_req.base_, &cse_req_arena);
     if (recv_result == NK_EOK) {
-        fprintf(stderr, "[Exchange     ] GOT Code from ControlSystem %08d\n", (rtl_uint32_t) cse_req.value);
+        fprintf(stderr, "[Exchange     ] GOT Code from ControlSystem %08x\n", (rtl_uint32_t) cse_req.value);
         traffic_light_Exchange_entity_dispatch(&ex_entity, &cse_req.base_, &cse_req_arena, &cse_res.base_, &cse_res_arena);
         uint32_t cse_reply_result = nk_transport_reply(&cse_transport.base, &cse_res.base_, &cse_res_arena);
         if (cse_reply_result != NK_EOK) {
