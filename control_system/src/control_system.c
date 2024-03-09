@@ -112,9 +112,12 @@ void *hardware_diagnostic_listener(void *vargp) {
     nk_req_reset(&hwd_res);
     nk_arena_reset(&hwd_req_arena);
     nk_arena_reset(&hwd_res_arena);
+    nk_req_reset(&ex_cl_req);
+    nk_req_reset(&ex_cl_res);
+    nk_arena_reset(&ex_cl_req_arena);
+    nk_arena_reset(&ex_cl_res_arena);
 
     if (nk_transport_recv(&hwd_transport.base, &hwd_req.base_, &hwd_req_arena) == NK_EOK) {
-        traffic_light_ControlSystem_entity_dispatch(&cs_entity, &hwd_req.base_, &hwd_req_arena, &hwd_res.base_, &hwd_res_arena);
         fprintf(stderr, "[ControlSystem] GOT Code from HardwareDiagnostic %08x\n", (rtl_uint32_t) hwd_req.value);
         fprintf(stderr, "[ControlSystem] ==> Exchange %08x\n", (rtl_uint32_t) hwd_req.value);
         ex_cl_req.value = hwd_req.value;
@@ -124,6 +127,7 @@ void *hardware_diagnostic_listener(void *vargp) {
         } else {
             fprintf(stderr, "[ControlSystem] Exchange service client nk_transport_reply error (%d)\n", ex_cl_call_result);
         }
+        traffic_light_ControlSystem_entity_dispatch(&cs_entity, &hwd_req.base_, &hwd_req_arena, &hwd_res.base_, &hwd_res_arena);
         uint32_t hwd_reply_result = nk_transport_reply(&hwd_transport.base, &hwd_res.base_, &hwd_res_arena);
         if (hwd_reply_result != NK_EOK) {
             fprintf(stderr, "[ControlSystem] HardwareDiagnostic service nk_transport_reply error (%d)\n", hwd_reply_result);
