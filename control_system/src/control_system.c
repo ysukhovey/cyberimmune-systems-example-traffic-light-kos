@@ -89,7 +89,7 @@ char ex_res_buffer[traffic_light_IMode_FMode_res_arena_size];
 struct nk_arena ex_res_arena = NK_ARENA_INITIALIZER(ex_res_buffer, ex_res_buffer + sizeof(ex_res_buffer));
 traffic_light_CMode_component ex_component;
 
-//
+// Transport infrastructure for Exchange client
 NkKosTransport ex_cl_transport;
 struct traffic_light_IMode_proxy ex_cl_proxy;
 Handle ex_cl_handle;
@@ -101,36 +101,90 @@ struct nk_arena ex_cl_req_arena = NK_ARENA_INITIALIZER(ex_cl_req_buffer, ex_cl_r
 char ex_cl_res_buffer[traffic_light_IMode_FMode_res_arena_size];
 struct nk_arena ex_cl_res_arena = NK_ARENA_INITIALIZER(ex_cl_res_buffer, ex_cl_res_buffer + sizeof(ex_cl_res_buffer));
 
+// Transport infrastructure for ModeChecker client
+//---------------
+NkKosTransport mc_transport;
+struct traffic_light_IMode_proxy mc_proxy;
+Handle mc_handle;
+nk_iid_t mc_riid;
+traffic_light_IMode_FMode_req mc_req;
+traffic_light_IMode_FMode_res mc_res;
+char mc_req_buffer[traffic_light_ModeChecker_entity_res_arena_size];
+struct nk_arena mc_req_arena = NK_ARENA_INITIALIZER(mc_req_buffer, mc_req_buffer + sizeof(mc_req_buffer));
+char mc_res_buffer[traffic_light_ModeChecker_entity_res_arena_size];
+struct nk_arena mc_res_arena = NK_ARENA_INITIALIZER(mc_res_buffer, mc_res_buffer + sizeof(mc_res_buffer));
+
 // CS Entity
 traffic_light_ControlSystem_entity cs_entity;
 
 // Hardware Diagnostic listener thread ID
 pthread_t hw_listener_id;
 
-void *hardware_diagnostic_listener(void *vargp) {
-    nk_req_reset(&hwd_req);
-    nk_req_reset(&hwd_res);
-    nk_arena_reset(&hwd_req_arena);
-    nk_arena_reset(&hwd_res_arena);
-    nk_req_reset(&ex_cl_req);
-    nk_req_reset(&ex_cl_res);
-    nk_arena_reset(&ex_cl_req_arena);
-    nk_arena_reset(&ex_cl_res_arena);
+// Exchange listener thread ID
+pthread_t ex_listener_id;
 
-    if (nk_transport_recv(&hwd_transport.base, &hwd_req.base_, &hwd_req_arena) == NK_EOK) {
-        fprintf(stderr, "[ControlSystem] GOT Code from HardwareDiagnostic %08x\n", (rtl_uint32_t) hwd_req.value);
-        fprintf(stderr, "[ControlSystem] ==> Exchange %08x\n", (rtl_uint32_t) hwd_req.value);
-        ex_cl_req.value = hwd_req.value;
-        uint32_t  ex_cl_call_result = traffic_light_ICode_FCode(&ex_cl_proxy.base, &ex_cl_req, NULL, &ex_cl_res, NULL);
-        if (ex_cl_call_result == NK_EOK) {
-            fprintf(stderr, "[ControlSystem] Sent %08x to Exchange\n", (rtl_uint32_t) hwd_req.value);
-        } else {
-            fprintf(stderr, "[ControlSystem] Exchange service client nk_transport_reply error (%d)\n", ex_cl_call_result);
+void *hardware_diagnostic_listener(void *vargp) {
+    for(;;) {
+        nk_req_reset(&hwd_req);
+        nk_req_reset(&hwd_res);
+        nk_arena_reset(&hwd_req_arena);
+        nk_arena_reset(&hwd_res_arena);
+        nk_req_reset(&ex_cl_req);
+        nk_req_reset(&ex_cl_res);
+        nk_arena_reset(&ex_cl_req_arena);
+        nk_arena_reset(&ex_cl_res_arena);
+
+        if (nk_transport_recv(&hwd_transport.base, &hwd_req.base_, &hwd_req_arena) == NK_EOK) {
+            fprintf(stderr, "[ControlSystem] GOT Code from HardwareDiagnostic %08x\n", (rtl_uint32_t) hwd_req.value);
+            fprintf(stderr, "[ControlSystem] ==> Exchange %08x\n", (rtl_uint32_t) hwd_req.value);
+            ex_cl_req.value = hwd_req.value;
+            uint32_t ex_cl_call_result = traffic_light_ICode_FCode(&ex_cl_proxy.base, &ex_cl_req, NULL, &ex_cl_res,
+                                                                   NULL);
+            if (ex_cl_call_result == NK_EOK) {
+                fprintf(stderr, "[ControlSystem] Sent %08x to Exchange\n", (rtl_uint32_t) hwd_req.value);
+            } else {
+                fprintf(stderr, "[ControlSystem] Exchange service client nk_transport_reply error (%d)\n",
+                        ex_cl_call_result);
+            }
+            fprintf(stderr, "[ControlSystem] 1\n");
+            traffic_light_ControlSystem_entity_dispatch(&cs_entity, &hwd_req.base_, &hwd_req_arena, &hwd_res.base_, &hwd_res_arena);
+            fprintf(stderr, "[ControlSystem] 2\n");
+            uint32_t hwd_reply_result = nk_transport_reply(&hwd_transport.base, &hwd_res.base_, &hwd_res_arena);
+            if (hwd_reply_result != NK_EOK) {
+                fprintf(stderr, "[ControlSystem] HardwareDiagnostic service nk_transport_reply error (%d)\n",
+                        hwd_reply_result);
+            }
+            fprintf(stderr, "[ControlSystem] 3\n");
         }
-        traffic_light_ControlSystem_entity_dispatch(&cs_entity, &hwd_req.base_, &hwd_req_arena, &hwd_res.base_, &hwd_res_arena);
-        uint32_t hwd_reply_result = nk_transport_reply(&hwd_transport.base, &hwd_res.base_, &hwd_res_arena);
-        if (hwd_reply_result != NK_EOK) {
-            fprintf(stderr, "[ControlSystem] HardwareDiagnostic service nk_transport_reply error (%d)\n", hwd_reply_result);
+    }
+    return NULL;
+}
+
+void *exchange_listener(void *vargp) {
+    for(;;) {
+        // Clean requests/responses along with their arenas
+        nk_req_reset(&ex_req);
+        nk_req_reset(&ex_res);
+        nk_arena_reset(&ex_req_arena);
+        nk_arena_reset(&ex_res_arena);
+        nk_req_reset(&mc_req);
+        nk_req_reset(&mc_res);
+        nk_arena_reset(&mc_req_arena);
+        nk_arena_reset(&mc_res_arena);
+
+        // Wait for request from Exchange
+        if (nk_transport_recv(&ex_transport.base, &ex_req.base_, &ex_req_arena) == NK_EOK) {
+            mc_req.value = ex_req.value;
+            fprintf(stderr, "[ControlSystem] ==> ModeChecker %08x\n", (rtl_uint32_t) mc_req.value);
+            uint32_t mc_call_result = traffic_light_IMode_FMode(&mc_proxy.base, &mc_req, &mc_req_arena, &mc_res, &mc_res_arena);
+            fprintf(stderr, "[ControlSystem] Sent %08x to ModeChecker\n", (rtl_uint32_t) mc_req.value);
+            if (mc_call_result  == rcOk) {
+                traffic_light_ControlSystem_entity_dispatch(&cs_entity, &ex_req.base_, &ex_req_arena, &ex_res.base_, &ex_res_arena);
+            }
+        }
+        uint32_t ex_reply_result = nk_transport_reply(&ex_transport.base, &ex_res.base_, &ex_res_arena);
+        if (ex_reply_result != NK_EOK) {
+            fprintf(stderr, "[ControlSystem] Exchange nk_transport_reply error (%d)\n", ex_reply_result);
         }
     }
     return NULL;
@@ -165,53 +219,26 @@ int main(int argc, const char *argv[]) {
     fprintf(stderr, "[ControlSystem] Exception IPC client transport (riid=%d) OK\n", ex_cl_riid);
 
     //---------------
-    NkKosTransport mc_transport;
-    struct traffic_light_IMode_proxy mc_proxy;
-    Handle mc_handle = ServiceLocatorConnect("cs_mc_connection");
+    mc_handle = ServiceLocatorConnect("cs_mc_connection");
     assert(mc_handle != INVALID_HANDLE);
     NkKosTransport_Init(&mc_transport, mc_handle, NK_NULL, 0);
-    nk_iid_t mc_riid = ServiceLocatorGetRiid(mc_handle, "modeChecker.mode");
+    mc_riid = ServiceLocatorGetRiid(mc_handle, "modeChecker.mode");
     assert(mc_riid != INVALID_RIID);
     traffic_light_IMode_proxy_init(&mc_proxy, &mc_transport.base, mc_riid);
-    traffic_light_IMode_FMode_req mc_req;
-    traffic_light_IMode_FMode_res mc_res;
-    char mc_req_buffer[traffic_light_ModeChecker_entity_res_arena_size];
-    struct nk_arena mc_req_arena = NK_ARENA_INITIALIZER(mc_req_buffer, mc_req_buffer + sizeof(mc_req_buffer));
-    char mc_res_buffer[traffic_light_ModeChecker_entity_res_arena_size];
-    struct nk_arena mc_res_arena = NK_ARENA_INITIALIZER(mc_res_buffer, mc_res_buffer + sizeof(mc_res_buffer));
     fprintf(stderr, "[ControlSystem] ModeChecker IPC client transport (riid=%d) OK\n", mc_riid);
 
     traffic_light_ControlSystem_entity_init(&cs_entity, &hwd_component, &ex_component);
 
     fprintf(stderr, "[ControlSystem] OK\n");
 
+    // Run HardwareDiagnostic messages processing service
     pthread_create(&hw_listener_id, NULL, hardware_diagnostic_listener, NULL);
 
-    for(;;) {
-        // Clean requests/responses along with their arenas
-        nk_req_reset(&ex_req);
-        nk_req_reset(&ex_res);
-        nk_arena_reset(&ex_req_arena);
-        nk_arena_reset(&ex_res_arena);
-        nk_req_reset(&mc_req);
-        nk_req_reset(&mc_res);
-        nk_arena_reset(&mc_req_arena);
-        nk_arena_reset(&mc_res_arena);
+    // Run Exchange messages processing service
+    pthread_create(&ex_listener_id, NULL, exchange_listener, NULL);
 
-        // Wait for request from Exchange
-        if (nk_transport_recv(&ex_transport.base, &ex_req.base_, &ex_req_arena) == NK_EOK) {
-            mc_req.value = ex_req.value;
-            fprintf(stderr, "[ControlSystem] ==> ModeChecker %08x\n", (rtl_uint32_t) mc_req.value);
-            uint32_t mc_call_result = traffic_light_IMode_FMode(&mc_proxy.base, &mc_req, &mc_req_arena, &mc_res, &mc_res_arena);
-            if (mc_call_result  == rcOk) {
-                traffic_light_ControlSystem_entity_dispatch(&cs_entity, &ex_req.base_, &ex_req_arena, &ex_res.base_, &ex_res_arena);
-            }
-        }
-        uint32_t ex_reply_result = nk_transport_reply(&ex_transport.base, &ex_res.base_, &ex_res_arena);
-        if (ex_reply_result != NK_EOK) {
-            fprintf(stderr, "[ControlSystem] Exchange nk_transport_reply error (%d)\n", ex_reply_result);
-        }
-    }
+    // Main loop
+    for(;;);
 
     return EXIT_SUCCESS;
 }

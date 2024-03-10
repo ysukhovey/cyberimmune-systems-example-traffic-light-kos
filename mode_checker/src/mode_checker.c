@@ -96,6 +96,12 @@ int main(int argc, const char *argv[]) {
         nk_arena_reset(&mc_req_arena);
         nk_arena_reset(&mc_res_arena);
 
+        // Dispatch requests
+        uint32_t dispatch_result = traffic_light_ModeChecker_entity_dispatch(&mc_entity, &mc_req.base_, &mc_req_arena, &mc_res.base_, &mc_res_arena);
+        if (dispatch_result != NK_EOK) {
+            fprintf(stderr, "[ModeChecker  ] ERR dispatch() error (%d)\n", dispatch_result);
+        }
+
         /* Wait for request to lights gpio entity. */
         uint32_t mc_rec_result = nk_transport_recv(&mc_transport.base, &mc_req.base_, &mc_req_arena);
         if (mc_rec_result == NK_EOK) {
@@ -121,11 +127,6 @@ int main(int argc, const char *argv[]) {
         uint32_t reply_result = nk_transport_reply(&mc_transport.base, &mc_res.base_, &mc_res_arena);
         if (reply_result != NK_EOK) {
             fprintf(stderr, "[ModeChecker  ] ERR nk_transport_reply() error (%d)\n", reply_result);
-        }
-        // Dispatch requests
-        uint32_t dispatch_result = traffic_light_ModeChecker_entity_dispatch(&mc_entity, &mc_req.base_, &mc_req_arena, &mc_res.base_, &mc_res_arena);
-        if (dispatch_result != NK_EOK) {
-            fprintf(stderr, "[ModeChecker  ] ERR dispatch() error (%d)\n", dispatch_result);
         }
 
     } while (true);

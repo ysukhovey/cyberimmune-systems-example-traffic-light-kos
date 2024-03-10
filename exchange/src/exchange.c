@@ -215,14 +215,13 @@ void *message_listener(void *vargp) {
         uint32_t recv_result = nk_transport_recv(&cse_transport.base, &cse_req.base_, &cse_req_arena);
     if (recv_result == NK_EOK) {
         fprintf(stderr, "[Exchange     ] GOT Code from ControlSystem %08x\n", (rtl_uint32_t) cse_req.value);
-        traffic_light_Exchange_entity_dispatch(&ex_entity, &cse_req.base_, &cse_req_arena, &cse_res.base_, &cse_res_arena);
+        //traffic_light_Exchange_entity_dispatch(&ex_entity, &cse_req.base_, &cse_req_arena, &cse_res.base_, &cse_res_arena);
         uint32_t cse_reply_result = nk_transport_reply(&cse_transport.base, &cse_res.base_, &cse_res_arena);
         if (cse_reply_result != NK_EOK) {
             fprintf(stderr, "[Exchange     ] ControlSystem service nk_transport_reply error (%d)\n", cse_reply_result);
         }
     }
 //    }
-    fprintf(stderr, "[Exchange     ] Returning from the message_listener()\n");
     return NULL;
 }
 
