@@ -207,21 +207,21 @@ traffic_light_CCode_component cse_component;
 
 void *message_listener(void *vargp) {
     fprintf(stderr, "[Exchange     ] Entering the message_listener()\n");
-//    for (;;) {
+    for (;;) {
         nk_req_reset(&cse_req);
         nk_req_reset(&cse_res);
         nk_arena_reset(&cse_req_arena);
         nk_arena_reset(&cse_res_arena);
         uint32_t recv_result = nk_transport_recv(&cse_transport.base, &cse_req.base_, &cse_req_arena);
-    if (recv_result == NK_EOK) {
-        fprintf(stderr, "[Exchange     ] GOT Code from ControlSystem %08x\n", (rtl_uint32_t) cse_req.value);
-        //traffic_light_Exchange_entity_dispatch(&ex_entity, &cse_req.base_, &cse_req_arena, &cse_res.base_, &cse_res_arena);
-        uint32_t cse_reply_result = nk_transport_reply(&cse_transport.base, &cse_res.base_, &cse_res_arena);
-        if (cse_reply_result != NK_EOK) {
-            fprintf(stderr, "[Exchange     ] ControlSystem service nk_transport_reply error (%d)\n", cse_reply_result);
+        if (recv_result == NK_EOK) {
+            fprintf(stderr, "[Exchange     ] GOT Code from ControlSystem %08x\n", (rtl_uint32_t) cse_req.value);
+            //traffic_light_Exchange_entity_dispatch(&ex_entity, &cse_req.base_, &cse_req_arena, &cse_res.base_, &cse_res_arena);
+            uint32_t cse_reply_result = nk_transport_reply(&cse_transport.base, &cse_res.base_, &cse_res_arena);
+            if (cse_reply_result != NK_EOK) {
+                fprintf(stderr, "[Exchange     ] ControlSystem service nk_transport_reply error (%d)\n", cse_reply_result);
+            }
         }
     }
-//    }
     return NULL;
 }
 
@@ -296,15 +296,15 @@ int main(int argc, const char *argv[]) {
         //traffic_light_Exchange_entity_dispatch(&ex_entity, &cse_req.base_, &cse_req_arena, &cse_res.base_, &cse_res_arena);
         request_data_from_http_server();
         for (int i = 0; i < c_count; i++) {
+            nk_req_reset(&cs_req);
+            nk_req_reset(&cs_res);
             cs_req.value = combinations[i];
             fprintf(stderr, "[Exchange     ] ==> ControlSystem [%08x]\n", cs_req.value);
             uint32_t sendingResult = traffic_light_IMode_FMode(&cs_proxy.base, &cs_req, NULL, &cs_res, NULL);
-            if (sendingResult == rcOk) {
-                traffic_light_Exchange_entity_dispatch(&ex_entity, &cs_req.base_, NULL, &cs_res.base_, NULL);
-            } else {
+            if (sendingResult != rcOk) {
                 fprintf(stderr, "[Exchange     ] ERR Failed to call ControlCenter.IMode.FMode() [%d] /riid=%d\n", sendingResult, cs_riid);
             }
-            //pthread_join(listener_id, NULL);
+            traffic_light_Exchange_entity_dispatch(&ex_entity, &cs_req.base_, NULL, &cs_res.base_, NULL);
         }
     }
 
