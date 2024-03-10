@@ -146,7 +146,7 @@ void *hardware_diagnostic_listener(void *vargp) {
                 fprintf(stderr, "[ControlSystem] Exchange service client nk_transport_reply error (%d)\n",
                         ex_cl_call_result);
             }
-            fprintf(stderr, "[ControlSystem] 1\n");
+            fprintf(stderr, "[ControlSystem] 1: cs_entity=%p, hwd_req.base_=%p, hwd_req_arena=%p, hwd_res.base_=%p, hwd_res_arena=%p\n", &cs_entity, &hwd_req.base_, &hwd_req_arena, &hwd_res.base_, &hwd_res_arena);
             traffic_light_ControlSystem_entity_dispatch(&cs_entity, &hwd_req.base_, &hwd_req_arena, &hwd_res.base_, &hwd_res_arena);
             fprintf(stderr, "[ControlSystem] 2\n");
             uint32_t hwd_reply_result = nk_transport_reply(&hwd_transport.base, &hwd_res.base_, &hwd_res_arena);
@@ -190,9 +190,7 @@ void *exchange_listener(void *vargp) {
     return NULL;
 }
 
-/* Control system entity entry point. */
-int main(int argc, const char *argv[]) {
-    //--------------
+void init_components() {
     // Init transport infrastructure for HardwareDiagnostic messages
     hwd_handle = ServiceLocatorRegister("diag_cs_connection", NULL, 0, &hwd_iid);
     assert(hwd_handle != INVALID_HANDLE);
@@ -230,6 +228,12 @@ int main(int argc, const char *argv[]) {
     traffic_light_ControlSystem_entity_init(&cs_entity, &hwd_component, &ex_component);
 
     fprintf(stderr, "[ControlSystem] OK\n");
+}
+
+/* Control system entity entry point. */
+int main(int argc, const char *argv[]) {
+    // Init transport infrastructure and components
+    init_components();
 
     // Run HardwareDiagnostic messages processing service
     pthread_create(&hw_listener_id, NULL, hardware_diagnostic_listener, NULL);

@@ -124,6 +124,11 @@ int main(int argc, const char *argv[]) {
             }
         }
         // Send response
+        nk_req_reset(&mc_req);
+        nk_req_reset(&mc_res);
+        nk_arena_reset(&mc_req_arena);
+        nk_arena_reset(&mc_res_arena);
+
         uint32_t reply_result = nk_transport_reply(&mc_transport.base, &mc_res.base_, &mc_res_arena);
         if (reply_result != NK_EOK) {
             fprintf(stderr, "[ModeChecker  ] ERR nk_transport_reply() error (%d)\n", reply_result);
